@@ -387,6 +387,7 @@
 <canvas id="confetti"></canvas>
 
 <script>
+
 // ====== ANIMATIONS ======
 let lastFilledRow = -1;
 let animateNewGame = false; // true only on first render of a new game
@@ -461,7 +462,8 @@ function launchConfetti() {
 }
 
 // ====== CONFIG ======
-const API_BASE = "https://statpad-mu.vercel.app";
+const ESPN_CORE = "https://sports.core.api.espn.com/v2/sports";
+const ESPN_SEARCH = "https://site.api.espn.com/apis/common/v3/search";
 
 const NFL_LOGOS = {"ARI":"https://a.espncdn.com/i/teamlogos/nfl/500/ari.png","ATL":"https://a.espncdn.com/i/teamlogos/nfl/500/atl.png","BAL":"https://a.espncdn.com/i/teamlogos/nfl/500/bal.png","BUF":"https://a.espncdn.com/i/teamlogos/nfl/500/buf.png","CAR":"https://a.espncdn.com/i/teamlogos/nfl/500/car.png","CHI":"https://a.espncdn.com/i/teamlogos/nfl/500/chi.png","CIN":"https://a.espncdn.com/i/teamlogos/nfl/500/cin.png","CLE":"https://a.espncdn.com/i/teamlogos/nfl/500/cle.png","DAL":"https://a.espncdn.com/i/teamlogos/nfl/500/dal.png","DEN":"https://a.espncdn.com/i/teamlogos/nfl/500/den.png","DET":"https://a.espncdn.com/i/teamlogos/nfl/500/det.png","GNB":"https://a.espncdn.com/i/teamlogos/nfl/500/gb.png","HOU":"https://a.espncdn.com/i/teamlogos/nfl/500/hou.png","IND":"https://a.espncdn.com/i/teamlogos/nfl/500/ind.png","JAX":"https://a.espncdn.com/i/teamlogos/nfl/500/jax.png","KAN":"https://a.espncdn.com/i/teamlogos/nfl/500/kc.png","LAC":"https://a.espncdn.com/i/teamlogos/nfl/500/lac.png","LAR":"https://a.espncdn.com/i/teamlogos/nfl/500/lar.png","LVR":"https://a.espncdn.com/i/teamlogos/nfl/500/lv.png","MIA":"https://a.espncdn.com/i/teamlogos/nfl/500/mia.png","MIN":"https://a.espncdn.com/i/teamlogos/nfl/500/min.png","NOR":"https://a.espncdn.com/i/teamlogos/nfl/500/no.png","NWE":"https://a.espncdn.com/i/teamlogos/nfl/500/ne.png","NYG":"https://a.espncdn.com/i/teamlogos/nfl/500-dark/nyg.png","NYJ":"https://a.espncdn.com/i/teamlogos/nfl/200/nyj.png","PHI":"https://a.espncdn.com/i/teamlogos/nfl/200/phi.png","PIT":"https://a.espncdn.com/i/teamlogos/nfl/500/pit.png","SEA":"https://a.espncdn.com/i/teamlogos/nfl/500/sea.png","SFO":"https://a.espncdn.com/i/teamlogos/nfl/500/sf.png","TAM":"https://a.espncdn.com/i/teamlogos/nfl/500/tb.png","TEN":"https://a.espncdn.com/i/teamlogos/nfl/500/ten.png","WAS":"https://a.espncdn.com/i/teamlogos/nfl/500/wsh.png","NFC":"https://a.espncdn.com/combiner/i?img=/i/teamlogos/nfl/500/nfc.png","AFC":"https://a.espncdn.com/combiner/i?img=/i/teamlogos/nfl/500/afc.png","ANY":"https://a.espncdn.com/i/teamlogos/leagues/500/nfl.png"};
 
@@ -503,45 +505,202 @@ const NBA_STATS = [
   { cat:"blk_pg", display:"BPG", type:"", mode:"avg" },
 ];
 
-const MULTI_TEAM = new Set(["TOT","2TM","3TM","4TM","5TM"]);
+// ESPN team ID maps
+const ESPN_NBA_IDS = {"ATL":1,"BOS":2,"BRK":17,"CHA":30,"CHI":4,"CLE":5,"DAL":6,"DEN":7,"DET":8,"GSW":9,"HOU":10,"IND":11,"LAC":12,"LAL":13,"MEM":29,"MIA":14,"MIL":15,"MIN":16,"NOP":3,"NYK":18,"OKC":25,"ORL":19,"PHI":20,"PHO":21,"POR":22,"SAC":23,"SAS":24,"TOR":28,"UTA":26,"WAS":27};
+const ESPN_NFL_IDS = {"ARI":22,"ATL":1,"BAL":33,"BUF":2,"CAR":29,"CHI":3,"CIN":4,"CLE":5,"DAL":6,"DEN":7,"DET":8,"GNB":9,"HOU":34,"IND":11,"JAX":30,"KAN":12,"LAC":24,"LAR":14,"LVR":13,"MIA":15,"MIN":16,"NOR":18,"NWE":17,"NYG":19,"NYJ":20,"PHI":21,"PIT":23,"SEA":26,"SFO":25,"TAM":27,"TEN":10,"WAS":28};
 
-// Team rosters: team abbreviation -> array of player IDs known to have played for that team
-// Team roster index built from API queries
-const NFL_ROSTERS = {"NWE":["BradTo00","TestVi00","FlutDo00","HoyeBr00","GallJo00","WatsBe00","AmenDa00","MossRa00","BoldBr00","BrowAn04","CookBr00","EdelJu00","FryaIr00","GaroJi00","GronRo00","PattCo00","CassMa00","DiggSt00","EllaHe00","GordJo02","GrogSt00","JackHa00","KincBr00","NewtCa00","PlunJi00","FaulKe00","TaylFr00","AghoNe00","BrisJa00","BrowTr00","BurkRe00","HenrHu00","HoopAu00","LewiDi00","SanuMo00","TupaTo20","JackSt00","LloyBr00","MorrSa00","WelkWe00","BarnKe00","BartMi00","BledDr00","BourKe00","BrowPh01","CentLa00","DorsPh00","ElliEz00","EricAl01","FranRu00","HogaCh00","HollMa00","MontTy01","MorgSt00","ParkDe01","SmitJo01","SmitJu00","TatuMo00","TomlEr01","BranDe00","GaffJa00","GrahDa00","JohnCh01","ShiaVi00","StalDo00","BradKy00","ByarKe00","ByrdDa00","CavaMa00","DobbJo00","FaurCh00","GesiMi00","JeffSh00","McCrFr00","WhitJa02","BennMa00","CrumAl00","EvanHe00","WinsKe01","GashSa00","GlenTe00","HumpLi01","JohnDE04","JohnJa12","LaCoMa00","MeyeJa01","MoncDo00","OlszGu00","PattDa00","RuckRe00","StidJa00","BakeCh00","BlouLe00","BritKe00","ChanSc00","LaFeBr00","PoliLo00","SlatMa00","TateBr00","WashLe00","WoodDa02","AlleTe00","BaxtFr00"],"TAM":["BradTo00","FitzRy00","JohnJo05","DebeSt00","TestVi00","McCoJo01","JackDe00","GallJo00","FergJo00","GabbBl00","JoneJu02","BridTe00","BrowAn04","BrowTi00","ChanCh00","EvanMi00","GronRo00","McCoLe01","RudoKy00","BeasCo00","McAfFr00","McCaKe00","NealLo00","ReavJo00","StocLu00","WinsJa00","BernGi00","JohnBr00","MoorDa00","ShepSt00","TupaTo20","YounSt00","BechAn00","JackVi00","JoneTh00","McCoLu00","BarnKe00","BellLe00","BratCa00","BrowJo02","DilfTr00","GlenMi00","GodwCh00","MoorDa03","OgunDa00","ClarDa00","OrloDa00","SmitAl02","CrocZa00","EdmoCh00","FellDa01","GageRu00","GileJi00","MayfBa00","WatsJu01","BennMi00","GilmJo00","HellWi00","LeftBy00","WinsKe01","BrooJa00","CarrMa00","DunnWa00","FourLe00","HarrJa00","HillIk00","HudsTa00","HumpAd00","MillSc01","PerrBr02","WillDo01","ZornJi00","BlouLe00","GradBr00","MurpLo00","SpurMi00","StevJe00","AlstMi00","BarbPe01"],"LAC":["RivePh00","BreeDr00","FlutDo00","TaylTy00","GateAn00","AlleKe00","CookJa02","DaniCh00","JoinCh00","RobeAn00","SmitGe00","SproDa00","McCaKe00","NealLo00","BenjTr00","FoutDa00","GreeVi00","HenrHu00","McMaJi00","VannNi00","ClemKe00","FloyMa00","JackVi00","OsgoKa00","WelkWe00","EkelAu00","EricAl01","GordMe00","HarbJi00","MetcEr00","RodgRi00","TomlEr01","McMiRa01","TomlLa00","VoleBi00","WhitCh02","AndeSt01","CartDe02","ConkTy00","DissWi00","EverGe00","HeinTa00","HineNy00","JeffSh00","KramEr00","McCrFr00","SlauWe00","WillMi07","BennMi00","BrowRo05","ChamCh00","ManuBr00","PeelJu00","PhilJo00","TolbMi00","BrooJa00","CharDJ00","ConwCu00","EarlQu00","EdwaGu00","EverJi00","HarmRo00","HoloPe00","HursHa00","InmaDo00","MartTo00","WattDe00","WillTr06","WillTy00","ChanSc00","JoneJa03","KendLa00","RoyaEd00","SpurMi00","TurnMi00","WoodDa02"],"IND":["RivePh00","FlacJo00","GoreFr00","MannPe00","HoyeBr00","RyanMa00","CollKe00","HassMa00","FergJo00","StokBr00","ChanCh00","ProeRi00","JohnAn02","WaynRe00","AbduAm00","FoleNi00","HiltT.00","BrisJa00","TreaLa00","TupaTo20","WentCa00","DorsPh00","DoylJa00","HarbJi00","McNiJe00","MorgSt00","PollMa00","RypiMa00","ClarDa00","GarcPi00","OrloDa00","WhitCh02","AlieMo00","CrocZa00","EbroEr00","HarrMa00","HineNy00","WillJo07","CribJo01","HartBe00","HeywDa00","RhodDo00","BeacPa00","BurtTr01","CampPa00","DaniDa02","DuliAs00","FaulMa00","GeorJe00","InmaDo00","JoneDa05","McKeIs00","MinsGa00","MoncDo00","PageMi00","PascZa00","RisoAn00","RogeCh02","BradAh00","FeltJe00","ForsJu00","MoorMe00","TammJa00","BantBr00"],"GNB":["RodgAa00","LewiMa00","FavrBr00","BrunMa00","HassMa00","GrahJi00","CobbRa00","CookJa02","AdamDa01","DrivDo00","LoftJa00","BonoSt00","DickLy00","McMaJi00","TomcMi00","WallWe00","KuhnJo00","AustTa00","BartMi00","JoneAa00","MetcEr00","MontTy01","MoorDa03","RodgRi00","WatkSa00","WestEd00","MartDa00","NelsJo00","DrakKe00","LazaAl00","ThomJe00","TonyRo00","ValdMa00","WillJa06","BennMa00","JennGr00","LeacVo00","BeckAn01","GlenTe00","GreeAh00","HarrJa00","HendWi00","JacoJo01","PedeDo00","RisoAn00","St.BEq00","ZornJi00","JoneJa04","KendLa00","LeexDo00","WallSe00","AlliGe01"],"NYJ":["RodgAa00","FlacJo00","FavrBr00","FitzRy00","JohnJo05","GoreFr00","TestVi00","BrunMa00","McCoJo01","TaylTy00","RichTo00","CobbRa00","RobeAn00","SmitGe00","MasoDe00","VickMi00","AdamDa01","MossSa00","BellNi01","MonkAr00","NealLo00","BurrPl00","MarsBr00","AndeRo04","BrisBu00","CrowJa00","GrifRy00","RaymKa00","RiggJo00","TupaTo20","UzomC.00","BechAn00","ClemKe00","CotcJe00","JoneTh00","BellLe00","BlakJe00","EsiaBo00","HogaCh00","KrofTy00","MontTy01","ReicFr00","ReynJo00","RyanPa00","ShulMi00","SiemTr00","StonDw00","TomlEr01","PennCh01","TomlLa00","BradKy00","ByarKe00","CastRi00","ColeTe01","ConkTy00","CookDa01","DarnSa00","FirkAn00","LazaAl00","MathTe00","ODonNe00","SlauWe00","WalkWe00","WillMi07","CribJo01","FortMa00","HartBe00","JohnCh04","SancMa00","ThomDe03","WinsKe01","AndeRi00","BarkJe00","BeckAn01","BerrBr00","BrowDa04","ConwCu00","EarlQu00","HardMe00","JohnTy02","McNeFr00","PerrBr02","SmitDe04","BakeCh00","DaviKe01","DreeJo00","HolmSa00","IvorCh00","PoweBi00","SmitBr01","WashLe00","WoodDa02","BantBr00","BaxtFr00"],"PIT":["RodgAa00","RoetBe00","WilsRu00","BatcCh00","VickMi00","BrowAn04","PattCo00","SandEm00","ThieAd00","WardHi00","McAfFr00","RobiAl02","BurrPl00","BonoSt00","BrisBu00","PruiMy00","TomcMi00","VannNi00","CotcJe00","KuhnJo00","BellLe00","BradTe00","BrowLa00","BrueMa00","ConnJa00","MaddTo00","PearPr00","SmitJo01","SmitJu00","StalJo00","StonDw00","TrubMi00","MillHe00","WashNa00","WillDe02","AlleKy00","BettJe00","BleiRo00","DobbJo00","EbroEr00","HarrFr00","JameJe00","LewiFr00","MathTe00","McClRa00","McDoVa00","ODonNe00","ValdMa00","WillMi07","HeywDa00","LeftBy00","MoorLa00","WallMi00","HayeJo00","MetcDK00","MillAn02","MillSc01","MoncDo00","OlszGu00","RudoMa00","SimsSt00","WattDe00","BattAr00","BlouLe00","GradBr00","HolmSa00","JoneJa03","MoorMe00","RandAn00","SpaeMa00"],"NOR":["BreeDr00","BrunMa00","DaltAn00","PeteAd01","CollKe00","GinnTe00","GrahJi00","WatsBe00","CookJa02","DaniCh00","WilsWa00","SproDa00","BridTe00","CookBr00","IngrMa01","SandEm00","CarrDe02","McAfFr00","NealLo00","WinsJa00","DelhJa00","WillRi00","BurtMi00","ManhCh00","MurrLa00","StabKe00","VannNi00","WallWe00","KuhnJo00","McCoLu00","BlakJe00","HillTa00","HogaCh00","KamaAl00","KramTo00","LandJa00","MannAr00","MontTy01","SiemTr00","SneaWi00","StilKe00","BushRe00","GrahDa00","NorrMo00","StalDo00","BrenHo00","CastRi00","HillJo02","HineNy00","JohnDa08","KennEd00","McCrFr00","PettDa00","ThomMi05","ValdMa00","WashDw00","WillJa06","WillJo07","BoumTo00","ColsMa00","EvanHe00","GilmJo00","MoorLa00","PhilJo00","RobyCo00","ShocJe00","ArmaAl00","BurrKe00","EarlQu00","EverJi00","GalbTo00","HebeBo00","HornJo00","HowaJo00","HumpLi01","MartJa00","MoreFo00","PattDa00","ReedJa00","St.BEq00","WhitKe00","WilsCe01","BettLa00","CoppTe00","HendDe00","HighTi00","IvorCh00","ThomPi00","AlleTe00"],"JAX":["LewiMa00","BrunMa00","HennCh01","GabbBl00","JoneMa02","BarkMa00","BeueSt00","FoleNi00","McCaKe00","RobiAl02","TaylFr00","ConlCh00","ManhCh00","MillBr02","SwaiGe00","TreaLa00","McCoLu00","OsgoKa00","AgneJa00","AustTa00","BellBl00","BrowJo02","DorsPh00","EngrEv00","GlenMi00","JoneZa00","McNiJe00","MundJo00","OgunDa00","ReynJo00","SaubEr00","SmitJi00","CharJa00","BradKy00","CrocZa00","EifeTy00","HydeCa00","KirkCh01","MullNi00","PatrTi00","RidlCa00","ThomCh03","BoumTo00","JoneGr01","LeftBy00","BeatC.00","CharDJ00","FourLe00","JohnDE04","MartJa00","MeyeJa01","MinsGa00","MoncDo00","OlivJo00","ReynCr00","RisoAn00","SmitDe04","DrewMa00","ForsJu00","GarrDa00","IvorCh00","MillZa02","OwenMo01","SpurMi00"],"CHI":["LewiMa00","McCoJo01","DaltAn00","FlutDo00","HoyeBr00","EvanVi00","GinnTe00","GrahJi00","KrieDa00","OlseGr00","CollTo00","AlleKe00","DaniCh00","ChanCh00","LandGr00","PattCo00","ProeRi00","BarkMa00","FoleNi00","GoodMa00","MostRa00","RobiAl02","MarsBr00","BurtMi00","GrifRy00","McMaJi00","PruiMy00","TomcMi00","WillDa05","ClarDe00","CutlJa00","JoneTh00","LloyBr00","BlakJe00","EngrBo00","GlenMi00","HarbJi00","JeffAl00","MillLa01","MuhaMu00","SaubEr00","SiemTr00","TrubMi00","HestDe99","ByrdDa00","CartDe02","DaviMi01","EverGe00","ForeDO00","HarrDe03","JameJe00","KennEd00","KramEr00","MoorD.00","PaytWa00","PettDa00","SmytDu00","TaylTr02","TonyRo00","BennMa00","FortMa00","GilmJo00","ManuBr00","OrtoKy00","TaylCh01","WeemEr00","BrowDa04","BurtTr01","CarlSt00","ConwCu00","HarmRo00","HomeTr00","HowaJo00","InmaDo00","MillAn02","MontDa01","MoorEm00","ParsBo00","PerrSe00","PeteNa00","PhipMi00","St.BEq00","WhitKe00","ZaccOl01","CampJa00","DaviKe01","GrosRe00","HolmSa00","MillZa02","OwenMo01","PaulLo00","PoliLo00","RoyaEd00","SpaeMa00","SpurMi00","BaxtFr00","BlasKh00"],"DEN":["LewiMa00","FlacJo00","DebeSt00","MannPe00","WilsRu00","MortCr00","StokBr00","BridTe00","RobiJe00","SandEm00","DaviVe00","BeueSt00","ElwaJo00","KeenCa00","MarsBr00","BrisBu00","BurtMi00","FrerGu00","GreeVi00","ManhCh00","MurrLa00","RaymKa00","VannNi00","ClarDe00","CutlJa00","LloyBr00","WelkWe00","BrowJo02","DorsPh00","EngrEv00","GordMe00","MaddTo00","MoorDa03","MoseHa00","PeriSa00","ReynJo00","SaubEr00","SharSh00","SiemTr00","TomlEr01","CharJa00","GaffJa00","GrahDa00","CracRi00","EdmoCh00","KennEd00","McCaEd00","MillCh00","PatrTi00","SherTr00","SuttCo00","WashDw00","BuckCo00","DaniOw00","McGaWi00","OrtoKy00","PhilJo00","ThomDe03","AlleBr00","BeckAn01","BoonMi00","CarsDw00","DorsTo00","DrisJe00","FantNo00","HearGa00","HumpLi01","LaCoMa00","LockDr00","McKeIs00","MoorEm00","OdomRi00","SmitRo01","StidJa00","DreeJo00","ForsJu00","PortCl00","RoyaEd00","TammJa00","BookDe00"],"BAL":["FlacJo00","JohnJo05","SchaMa00","TestVi00","JackDe00","TaylTy00","SmitSt01","WatsBe00","HopkDe00","JuszKy00","MasoDe00","StokBr00","CunnRa00","IngrMa01","LandGr00","SandDe00","BoldAn00","BeckOd00","BryaDe01","KincBr00","MostRa00","NealLo00","WallDa01","WillRi00","AghoNe00","HenrDe00","MoorCh00","MurrLa00","RobiDe01","TreaLa00","HeapTo00","RedmCh00","BellLe00","BlakJe00","BrowJo02","ByneEa00","DilfTr00","GordMe00","GrifRo01","HarbJi00","MontTy01","PearPr00","RicaPa00","RushCo00","SharSh00","SneaWi00","TomlEr01","WatkSa00","ClarDa00","CrabMi00","HestDe99","HousTJ00","StalDo00","AndrMa00","BoylNi00","CookDa01","DaviMi01","DrakKe00","FreeDe00","JackLa00","McNaSt00","WillLu00","WillMa04","DaniOw00","LeacVo00","McGaWi00","TaylCh01","WallMi00","BeacPa00","BrowDa04","BrowMa04","ChesRa00","EdwaGu00","GashSa00","HillJu00","HursHa00","KellJo00","MillAn02","OlivJo00","PageMi00","PerrBr02","SimsSt00","BajeBi00","BollKy00","CoppTe00","DickEd00","ForsJu00","JoneJa03","MaclJe00","MughOv00","WoodDa02","AlleTe00","AlstMa00"],"CLE":["FlacJo00","JohnJo05","TestVi00","McCoJo01","HoyeBr00","TaylTy00","WatsBe00","McCoCo00","SellMi00","BeckOd00","GoodMa00","GordJo02","KeenCa00","KincBr00","McCaKe00","MostRa00","WinsJa00","AndeDe00","DelhJa00","BenjTr00","BrisJa00","CoopAm00","HoopAu00","StroDo00","SwaiGe00","TomcMi00","TupaTo20","McCoLu00","BrowPh01","ByneEa00","DilfTr00","GrifRo01","HuntKa00","LandJa00","MetcEr00","NjokDa00","RypiMa00","SmitAl02","StalDo00","WhitCh02","CartDe02","ChubNi00","DaniGa00","FellDa01","ForeDO00","HarrDe03","HillCa00","HodgKh00","HydeCa00","JameJe00","JohnDu00","MayfBa00","MullNi00","NewsOz00","SlauWe00","WatsDe00","AustMi00","CribJo01","McGaWi00","WinsKe01","AkinJo00","BrooJa00","CarlSt00","CarrMa00","DrisJe00","HiggRa00","HoloPe00","JohnDE04","KellJo00","KosaBe00","PageMi00","PattDa00","PedeDo00","PerrBr02","PhipMi00","PruiGr00","RisoAn00","RogeCh02","RuckRe00","WillTr06","BarnGa01","BoweDw00","BritKe00","CampJa00","GradBr00","WallSe00"],"CIN":["FlacJo00","FitzRy00","JohnJo05","DaltAn00","JoinCh00","KitnJo00","OwenTe00","GreeA.00","JoneMa02","PalmCa00","AndeKe00","NealLo00","ReavJo00","KellRe00","BernGi00","BurkRe00","FrerGu00","SanuMo00","UzomC.00","BlakJe00","BoydTy00","EricAl01","EsiaBo00","HolmRo00","KrofTy00","McCaA.00","PeriSa00","HousTJ00","JohnCh01","SmitAl02","EifeTy00","GesiMi00","MixoJo00","ODonNe00","RossJo00","TaylTr02","ThomJe00","WaltKe00","AlleBr00","BrooJa00","CurtIs00","DrisJe00","FantNo00","HearGa00","HudsTa00","HursHa00","SampDr00","ThomMi04","WillTr06","CampJa00","GradBr00","GresJe00","JohnLa00","LaFeBr00","LeexDo00","TateBr00"],"DAL":["WittJa00","TestVi00","DaltAn00","GallJo00","CobbRa00","MortCr00","WilsWa00","KitnJo00","OwenTe00","CookBr00","CunnRa00","RobiJe00","SandDe00","CassMa00","BeasCo00","BeueSt00","BryaDe01","HiltT.00","PeetRo00","RomoTo00","CoopAm00","JohnBr00","PresDa01","SmitEm00","SwaiGe00","FasaAn00","MorrSa00","AustTa00","BellBl00","BledDr00","BrowNo00","CarmHa00","ElliEz00","MorrAl00","PearPr00","RushCo00","SaubEr00","SmitJi00","CookDa01","HillCa00","SchuDa00","TurnMa00","WhitDa01","AustMi00","BennMa00","McFaDa00","OrtoKy00","PhilJo00","SancMa00","AikmTr00","AndeRi00","CampPa00","ClemCo00","DorsTo00","GlenTe00","HarrJa00","IrviMi00","KosaBe00","NewhRo00","PollTo00","RuckRe00","SandMi01","SmitDe04","WalkHe00","WilsCe01","ChanSc00","CoppTe00","PoliLo00"],"LVR":["WittJa00","SchaMa00","McCoJo01","HoyeBr00","JackDe00","JunkTr20","RiceJe00","CollKe00","EvanVi00","CookJa02","GannRi00","JoneTa00","SmitGe00","WilsWa00","MossRa00","AdamDa01","BoldBr00","BrowTi00","GaroJi00","PattCo00","PalmCa00","AbduAm00","AlleMa00","BeueSt00","CarrDe02","LockTy00","LoftJa00","MariMa01","MostRa00","PeetRo00","PlunJi00","SmitLe00","WallDa01","LyncMa00","AghoNe00","CoopAm00","HoopAu00","MurrLa00","StabKe00","BranCl00","BrowPh01","CarrDe00","GlenMi00","HollMa00","JoneZa00","McCaA.00","SneaWi00","TomlEr01","CrabMi00","HousTJ00","NelsJo00","CartDe02","CrocZa00","DrakKe00","HostJe00","PastDa00","RiddTh00","ThomIa00","BennMi00","CartRo01","HeywDa00","McFaDa00","RhodDo00","ChanBo00","ChesRa00","GeorJe00","IngoAl01","JacoJo01","JohnJa12","MeyeJa01","MinsGa00","MoreFo00","PeteNa00","PruiGr00","RenfHu00","RisoAn00","StidJa00","WillJa00","WillTy00","BollKy00","CampJa00","DrewMa00","GradBr00","HagaDe00","JoneJa04","LaFeBr00","MurpLo00","BarbPe01","BookDe00"],"ATL":["FavrBr00","SchaMa00","DebeSt00","RyanMa00","GonzTo00","CousKi00","JoneJu02","RobeAn00","WilsWa00","VickMi00","ChanCh00","PattCo00","SandDe00","MariMa01","SmitLe00","StocLu00","KellRe00","HillDr00","HoopAu00","JohnBi01","PruiMy00","SanuMo00","TreaLa00","WillDa05","FinnBr00","JackSt00","McCoLu00","RedmCh00","AgneJa00","BarnKe00","HollMa00","KozlBr00","LeexRo20","MetcEr00","PollMa00","SaubEr00","SmitJo01","WestEd00","HestDe99","WhitRo00","ByrdDa00","ColeTe01","DaviMi01","DwelRo00","FirkAn00","FreeDe00","GageRu00","HeinTa00","HodgKh00","JeffSh00","KramEr00","MathTe00","McClRa00","McCrFr00","MillCh00","RidlCa00","ToilLe00","CrumAl00","DougHa00","HartBe00","LeftBy00","PeelJu00","RobyCo00","WeemEr00","BartSt00","DunnWa00","GeorJe00","HebeBo00","HornJo00","HursHa00","LeexBo00","MartTo00","MillSc01","PoweBr00","RisoAn00","ZaccOl01","JenkMi00","MughOv00","PaulLo00","PoliLo00","TammJa00","TurnMi00"],"MIN":["FavrBr00","PeteAd01","CousKi00","RichTo00","GannRi00","WilsWa00","MossRa00","BridTe00","CunnRa00","MoonWa00","PattCo00","RudoKy00","ThieAd00","CassMa00","AbduAm00","CartCr00","DiggSt00","JackHa00","KeenCa00","StocLu00","WebbJo00","KleiJi00","McNaDo00","BonoSt00","BrisBu00","FrerGu00","JohnBr00","McKiJe00","McMaJi00","MurrLa00","PruiMy00","TiceMi00","TreaLa00","VannNi00","WentCa00","HillSh00","BellBl00","HamxC.00","JoneAa00","KramTo00","MannAr00","MundJo00","BurlNa00","ShiaVi00","AdamTo00","ConkTy00","CookDa01","DarnSa00","DobbJo00","JordSt00","MullNi00","SherTr00","TonyRo00","BennMi00","BoumTo00","JackTa00","JennGr00","TaylCh01","WallMi00","BoonMi00","GalbTo00","GaskMy00","GeorJe00","HockTJ00","LeexBo00","MannSe00","OlivJo00","PoweBr00","ReedJa00","WalkHe00","BradSa00","FeltJe00","JenkMi00","MoorMe00","AkerCa00","AlleTe00"],"ARI":["FitzLa00","McCoJo01","HoyeBr00","JunkTr20","PeteAd01","GinnTe00","KrieDa00","ErtzZa00","GabbBl00","HopkDe00","McCoCo00","RobeAn00","ChanCh00","GreeA.00","ProeRi00","BoldAn00","PalmCa00","BeueSt00","McAfFr00","AndeDe00","AndeRo04","BrisJa00","McMaJi00","MoorCh00","SherAn00","SmitEm00","SwaiGe00","ThomLo00","TupaTo20","WillDa05","BechAn00","HeapTo00","JoneTh00","BlakJe00","BrowJo02","BrowPh01","CentLa00","ConnJa00","EsiaBo00","GlenMi00","GreeRo01","JoneZa00","MetcEr00","MorrAl00","CrabMi00","AndeSt01","ByrdDa00","DobbJo00","DrakKe00","EdmoCh00","FellDa01","HarrDe03","JohnDa08","KirkCh01","SherTr00","SmitJT00","WillMa04","JohnCh04","PhilJo00","StanDr00","TaylCh01","BeacPa00","BrowMa04","ClemCo00","CoopPh00","DaniDa02","DortGr01","HearGa00","JohnDE04","MurrKy00","PascZa00","SimsSt00","WarnKu00","BradSa00","ClayCh00","GresJe00","HighTi00","JohnBr02","SpurMi00"],"LAR":["FitzRy00","StafMa00","JackDe00","HartJi00","AmenDa00","CookJa02","AdamDa01","ChanCh00","CookBr00","GaroJi00","ProeRi00","RobiJe00","WoodRo02","BeckOd00","BrucIs00","EllaHe00","FoleNi00","JackHa00","JawoRo00","KeenCa00","LoftJa00","RobiAl02","BonoSt00","BryaCu00","FrerGu00","GoffJa00","HigbTy00","HillDr00","RobiDe01","VannNi00","WentCa00","BechAn00","ClemKe00","HillSh00","JackSt00","LloyBr00","WelkWe00","AndeOt00","AustTa00","CarrDe00","GreeRo01","KuppCo00","MaddTo00","MundJo00","ReynJo00","RutlJe00","RypiMa00","TatuMo00","WatkSa00","FeelA.00","McMiRa01","BettJe00","BrowMa03","EverGe00","HodgKh00","KennEd00","MayfBa00","MillCh00","PastDa00","SmitJT00","YounCh00","ManuBr00","BartSt00","CoopPh00","EverJi00","FaulMa00","GaskMy00","GrayMe01","GreeTr00","HillDa01","HoloPe00","KellJo00","LeexBo00","MannSe00","MartJa00","PageMi00","PoweBr00","ThomMi04","WarnKu00","WillJa00","BajeBi00","BollKy00","BradSa00","BritKe00","KendLa00","AkerCa00"],"BUF":["FitzRy00","GoreFr00","FlutDo00","JunkTr20","TaylTy00","CollTo00","FergJo00","JoneTa00","RobeAn00","OwenTe00","CookBr00","McCoLe01","SandEm00","WoodRo02","CassMa00","BarkMa00","BeasCo00","DiggSt00","GoodMa00","KeenCa00","LoftJa00","MattJo00","MetzPe00","ReedAn00","SmitLe00","WebbJo00","AndeDe00","LyncMa00","CoopAm00","CrowJa00","MoorDa00","MurrLa00","ThomLo00","MorrSa00","BledDr00","BrowJo02","CentLa00","HogaCh00","HollMa00","JoneZa00","KrofTy00","MoseHa00","ReicFr00","SamuCu00","TrubMi00","WatkSa00","BushRe00","MartDa00","AlleJo02","AlleKy00","HineNy00","JohnDu00","LewiFr00","McClRa00","SherTr00","TaskSt00","ThomTh00","ValdMa00","WillJo07","McGaWi00","OrtoKy00","TolbMi00","BreiMa00","ChanBo00","EarlQu00","FourLe00","GashSa00","HardMe00","HarmRo00","JohnTy02","KnoxDa00","McKeIs00","MoulEr00","PerrSe00","PeteNa00","SingDe00","ChanSc00","ClayCh00","FeltJe00","HagaDe00","IvorCh00","JackFr02","SmitBr01","TateBr00","BantBr00"],"TEN":["FitzRy00","PeteAd01","CollKe00","HassMa00","KrieDa00","CookJa02","GabbBl00","HopkDe00","JoneJu02","MasoDe00","MossRa00","TannRy00","WoodRo02","CassMa00","JohnAn02","WalkHu00","GordJo02","LockTy00","MariMa01","NealLo00","StocLu00","ConlCh00","HenrDe00","HoopAu00","LewiDi00","MoorCh00","PruiMy00","RaymKa00","SwaiGe00","VannNi00","FasaAn00","BoydTy00","McNiJe00","ReynJo00","SmitJo01","GrahDa00","ShiaVi00","VoleBi00","WashNa00","WhitCh02","DobbJo00","FirkAn00","ForeDO00","McNaSt00","ODonNe00","RidlCa00","CrumAl00","DougHa00","HartBe00","JohnCh04","RobyCo00","WeemEr00","AlleBr00","BrowAJ00","HarmRo00","HarrJa00","HumpAd00","MoulEr00","PerrSe00","PollTo00","RogeCh02","RudoMa00","BritKe00","HagaDe00","WashLe00","BlasKh00"],"HOU":["FitzRy00","SchaMa00","HoyeBr00","TaylTy00","AmenDa00","CobbRa00","HopkDe00","JoinCh00","JoneTa00","RobeAn00","MasoDe00","ChanCh00","CookBr00","IngrMa01","MoonWa00","WoodRo02","JohnAn02","DiggSt00","KeenCa00","ReavJo00","WebbJo00","DelhJa00","BurkRe00","ConlCh00","DickLy00","GrifRy00","HillDr00","JohnBi01","MoorCh00","PruiMy00","StabKe00","BrowNo00","BrowPh01","BrueMa00","DorsPh00","MannAr00","McCaA.00","MillLa01","OgunDa00","SaubEr00","StilKe00","CarrDa00","GaffJa00","NorrMo00","OrloDa00","WashNa00","AlleKy00","AndeSt01","CartDe02","CastRi00","ChubNi00","FellDa01","ForeDO00","GileJi00","HeinTa00","HydeCa00","JohnDa08","JohnDu00","KirkCh01","McNaSt00","MixoJo00","PastDa00","SchuDa00","SlauWe00","TaskSt00","WatsDe00","WatsJu01","BrowRo05","DaniOw00","JoneGr01","LeacVo00","ThomDe03","WaltKe00","AkinJo00","BeckAn01","BerrBr00","BoonMi00","BurrKe00","DrisJe00","GreeAh00","HarmRo00","JohnJa12","MillAn02","MoulEr00","SimsSt00","SingDe00","WillJa00","DreeJo00","ForsJu00","GrosRe00","JohnBr02","JoneJa03","RoseSa00","AkerCa00","AlstMa00"],"MIA":["FitzRy00","DebeSt00","GoreFr00","HennCh01","GinnTe00","AmenDa00","BoldBr00","BridTe00","FryaIr00","MariDa00","TannRy00","BeckOd00","CartCr00","JawoRo00","KincBr00","MostRa00","WallDa01","MarsBr00","MoorMa01","WillRi00","AndeRo04","BrisJa00","FrerGu00","HillTy00","MoorDa00","StroDo00","WillDa05","ClarDe00","CutlJa00","FasaAn00","MorrSa00","WelkWe00","GrieBo00","HollMa00","KrofTy00","LandJa00","LeexRo20","MillLa01","ParkDe01","PeriSa00","SmitJo01","StilKe00","BushRe00","FeelA.00","GaffJa00","MartDa00","McMiRa01","PennCh01","BrowMa03","ByarKe00","CracRi00","DrakKe00","EdmoCh00","GesiMi00","JohnDu00","MoorNa00","SherTr00","SmytDu00","ThomTh00","WilsAl02","WilsJe01","BrowRo05","ChamCh00","EvanHe00","HellWi00","JennGr00","PeelJu00","WallMi00","BerrBr00","BreiMa00","GaskMy00","GreeTr00","HardBr00","HowaJo00","IngoAl01","JensJi00","KosaBe00","MartTo00","PedeDo00","PerrSe00","WilsCe01","ClayCh00","HagaDe00","JohnLa00","LeexDo00","PoliLo00","RoseSa00"],"WAS":["FitzRy00","JohnJo05","SmitAl03","BrunMa00","JackDe00","JunkTr20","PeteAd01","CousKi00","HartJi00","CollTo00","GallJo00","ErtzZa00","GannRi00","McCoCo00","RobeAn00","FryaIr00","SandDe00","DaviVe00","MossSa00","SellMi00","BellNi01","EllaHe00","KeenCa00","MariMa01","McCaKe00","MonkAr00","PeetRo00","ReedAn00","McNaDo00","AndeRo04","BrisJa00","BurtMi00","CrowJa00","FrerGu00","JohnBi01","JohnBr00","MoorCh00","RiggJo00","ThomLo00","TiceMi00","WentCa00","LloyBr00","BrowNo00","ByneEa00","CarrDe00","CentLa00","EkelAu00","EricAl01","GrifRo01","KozlBr00","McNiJe00","MetcEr00","MitcBr00","MorrAl00","OgunDa00","PeriSa00","RutlJe00","RypiMa00","SamuCu00","WarrDo00","GaffJa00","GarcPi00","SmitAl02","StalDo00","AlleKy00","CartDe02","CastRi00","CracRi00","EdmoCh00","FaurCh00","HeinTa00","HillCa00","HostJe00","ReedJo02","SmitJT00","ThomCh03","WillJo07","CartRo01","SancMa00","ArmaAl00","DrisJe00","GeorJe00","GreeTr00","HumpAd00","InmaDo00","McKiJ.00","McLaTe00","PattDa00","ReynCr00","SamuDe00","SimsSt00","TheiJo00","ThraJa00","WillDo01","ZaccOl01","BettLa00","CampJa00","CoolCh00","GrosRe00","HighTi00","JohnLa00","PaulLo00","PortCl00","RandAn00","ThomPi00","AlleTe00","AlstMa00","BarbPe01"],"SFO":["JohnJo05","DebeSt00","GoreFr00","SmitAl03","HoyeBr00","RiceJe00","GinnTe00","GabbBl00","JuszKy00","McCoCo00","MossRa00","OwenTe00","GaroJi00","SandDe00","SandEm00","BoldAn00","DaviVe00","WalkHu00","BellNi01","BrucIs00","GoodMa00","MattJo00","MontJo01","MostRa00","PlunJi00","BenjTr00","BonoSt00","ConlCh00","McKiJe00","MillBr02","RobiDe01","SanuMo00","WallWe00","YounSt00","HillSh00","LloyBr00","OsgoKa00","BellBl00","BourKe00","CarrDe00","DilfTr00","FranRu00","KittGe00","KrofTy00","McCaCh01","McNiJe00","MorrAl00","SaubEr00","SneaWi00","BushRe00","CarrDa00","CrabMi00","GarcPi00","NorrMo00","CavaMa00","ColeTe01","CracRi00","DarnSa00","DaviMi01","DobbJo00","DwelRo00","GageRu00","HydeCa00","McCaEd00","McClRa00","McDoVa00","MullNi00","PettDa00","ReedJo02","SherTr00","TaylTr02","ToilLe00","TurnMa00","ValdMa00","WilsJe01","YounCh00","PeelJu00","AlleBr00","BeatC.00","BreiMa00","ConwCu00","HearGa00","HudsTa00","MortJo00","SamuDe00","WhitKe00","WillJa00","BajeBi00","BattAr00","JacoBr00","JohnBr02","MurpLo00","PaulLo00","SpurMi00","ThomPi00","WestBr00"],"DET":["StafMa00","McCoJo01","PeteAd01","KrieDa00","AmenDa00","DaniCh00","FergJo00","RobeAn00","BatcCh00","KitnJo00","BridTe00","JoneMa02","LandGr00","BoldAn00","CassMa00","AbduAm00","BellNi01","MetzPe00","PeetRo00","RobiAl02","TateGo00","BurtMi00","FrerGu00","GoffJa00","RaymKa00","SanuMo00","ThomLo00","HillSh00","OsgoKa00","AgneJa00","HolmRo00","PollMa00","ReicFr00","ReynJo00","BurlNa00","BushRe00","NorrMo00","OrloDa00","AlleKy00","DaniGa00","DwelRo00","EbroEr00","FellDa01","FirkAn00","GileJi00","HodgKh00","JameJe00","JeffSh00","KramEr00","PatrTi00","RiddTh00","ToilLe00","WashDw00","WillJa06","WillJo07","WillLu00","HellWi00","MoorLa00","MorrMa00","StanDr00","CharDJ00","DaniDa02","DrisJe00","HillDa01","HockTJ00","JohnTy02","KennTo01","McKiJ.00","MontDa01","MoorHe00","MortJo00","PoweBr00","ReynCr00","SchlCo00","ThomLe01","WillTy00","BlouLe00","DaviKe01","FeltJe00","ForsJu00","JohnBr02","JohnCa00","OwenMo01","AlliGe01","BantBr00"],"KAN":["DebeSt00","SmitAl03","HennCh01","GonzTo00","KrieDa00","CollTo00","RichTo00","DaniCh00","GabbBl00","GannRi00","HopkDe00","KelcTr00","McCoLe01","MoonWa00","CassMa00","AlleMa00","FoleNi00","GordJo02","JawoRo00","MontJo01","MoorMa01","BonoSt00","BurtMi00","ConlCh00","HillTy00","McKiJe00","RobiDe01","SherAn00","WentCa00","WillDa05","BechAn00","FasaAn00","JoneTh00","BartMi00","BellBl00","BellLe00","EngrBo00","HuntKa00","MahoPa00","PeriSa00","SmitJu00","WatkSa00","CharJa00","AdamTo00","FirkAn00","HarrDe03","KennEd00","SlauWe00","SmitJT00","TonyRo00","ValdMa00","WatsJu01","WilsAl02","AvanJa00","BennMi00","ChamCh00","OrtoKy00","BrowMa04","DunnJa00","GreeTr00","HardMe00","HayeJo00","HoloPe00","HornJo00","MarsHe00","MinsGa00","MortJo00","RisoAn00","BoweDw00","CoppTe00","JohnLa00","MaclJe00"],"CAR":["TestVi00","McCoJo01","DaltAn00","CollKe00","GinnTe00","OlseGr00","SmitSt01","RobeAn00","BridTe00","ProeRi00","ThieAd00","AbduAm00","BeueSt00","KincBr00","MattJo00","MetzPe00","NewtCa00","PeetRo00","WebbJo00","AndeDe00","DelhJa00","MoorMa01","AndeRo04","BonoSt00","ManhCh00","WallWe00","CotcJe00","BarnKe00","EricAl01","HogaCh00","McCaCh01","MetcEr00","MoorDa03","MuhaMu00","ReicFr00","SamuCu00","SneaWi00","StonDw00","CarrDa00","StewJo00","WillDe02","AlleKy00","ByrdDa00","DarnSa00","DaviMi01","FaurCh00","ForeDO00","HeinTa00","MayfBa00","McClRa00","MoorD.00","ThomIa00","AvanJa00","HartBe00","ShocJe00","TolbMi00","ArmaAl00","BoonMi00","CarrMa00","CharDJ00","CoopPh00","DortGr01","HiggRa00","HursHa00","MoncDo00","RenfHu00","SandMi01","BarnGa01","DickEd00","FeltJe00","LaFeBr00","MurpLo00"],"PHI":["McCoJo01","JackDe00","DaniCh00","ErtzZa00","JoneJu02","OwenTe00","SproDa00","VickMi00","CunnRa00","FryaIr00","McCoLe01","BarkMa00","CartCr00","FoleNi00","JackHa00","JawoRo00","LoftJa00","MariMa01","MattJo00","MonkAr00","PeetRo00","ReavJo00","TateGo00","McNaDo00","AghoNe00","BrisBu00","LewiDi00","McMaJi00","UzomC.00","WentCa00","FinnBr00","BarnKe00","BartMi00","BlakJe00","CarmHa00","GreeRo01","HollMa00","JeffAl00","MitcBr00","RodgRi00","RyanPa00","RypiMa00","ShulMi00","WestEd00","CeleBr00","FeelA.00","SmitAl02","StalDo00","BarkSa00","ByarKe00","CartDe02","CavaMa00","GileJi00","GoedDa00","McCrFr00","PastDa00","RossJo00","ThomJe00","YounCh00","AustMi00","AvanJa00","BrowRo05","BuckCo00","SancMa00","WallMi00","BeacPa00","BrowAJ00","BurtTr01","CampPa00","ClemCo00","DunnJa00","HowaJo00","MinsGa00","PascZa00","PedeDo00","SandMi01","ThraJa00","WalkHe00","ZaccOl01","BlouLe00","BradSa00","MaclJe00","SmitBr01","WestBr00","BlasKh00"],"SEA":["JunkTr20","PeteAd01","RiceJe00","HassMa00","GrahJi00","KrieDa00","OlseGr00","WilsRu00","GallJo00","SmitGe00","KitnJo00","StokBr00","MoonWa00","ProeRi00","RobiJe00","BellNi01","GoodMa00","GordJo02","JackHa00","LockTy00","MetzPe00","TateGo00","LyncMa00","MarsBr00","BryaCu00","TiceMi00","TreaLa00","VannNi00","BrowPh01","DilfTr00","DorsPh00","EngrBo00","KuppCo00","LargSt00","LeexRo20","MoorDa03","PollMa00","SaubEr00","StroMa00","BranDe00","BurlNa00","HestDe99","HousTJ00","WhitCh02","DarnSa00","DaviMi01","DissWi00","EverGe00","FaurCh00","HarrFr00","HydeCa00","McCrFr00","TurnMa00","WillLu00","YounCh00","EvanHe00","HellWi00","JackTa00","MorrMa00","DaniDa02","FantNo00","GaskMy00","GreeAh00","HomeTr00","LockDr00","McKiJ.00","MetcDK00","ZornJi00","BakeCh00","DaviKe01","DickEd00","ForsJu00","JackFr02","StevJe00","WallSe00","WashLe00","AkerCa00","BladBr00"],"NYG":["JunkTr20","TaylTy00","CollKe00","WilsRu00","MannEl00","JoneTa00","McCoCo00","MortCr00","SmitGe00","StokBr00","RudoKy00","BeckOd00","TateGo00","WallDa01","WebbJo00","WinsJa00","BurrPl00","MarsBr00","LewiDi00","ManhCh00","RaymKa00","ShepSt00","SimmPh00","VannNi00","AndeOt00","EngrEv00","GlenMi00","KozlBr00","MaddTo00","MitcBr00","MorrAl00","RutlJe00","TomlEr01","CarrDa00","ShiaVi00","StewJo00","BarkSa00","CavaMa00","CrosHo00","FreeDe00","HostJe00","McCaEd00","McClRa00","PettDa00","RossJo00","ToilLe00","ToomAm00","BennMa00","ShocJe00","BreiMa00","CampPa00","CoopPh00","GalbTo00","HillIk00","HudsTa00","HumpLi01","JohnJa12","JoneDa05","LaCoMa00","LockDr00","MoorEm00","MoorHe00","OlszGu00","PattDa00","RuckRe00","SingDe00","SlayDa01","WalkHe00","WarnKu00","BradAh00","HagaDe00","JacoBr00","MurpLo00","RoseSa00","BookDe00"]};
-const NBA_ROSTERS = {"CLE":["jamesle01","greenje02","loveke01","hardeja01","milescj01","varejan01","onealsh01","lopezro01","mcgeeja01","rondora01","rosede01","greenda02","hillge01","jefferi01","korveky01","millean02","millemi01","burksal01","drumman01","edwarja01","irvinky01","thomptr01","anderch01","jamisan01","mariosh01","smithjo02","smithjr01","wadedw01","wallabe01","crowdja01","curryse01","ellinwa01","morrima03","rollitr01","schrode01","thomais02","battito01","denglu01","dunlemi02","livinsh01","parkean01","perkike01","clarkjo01","davised01","rubiori01","westma01","bogutan01","boykiea01","caldejo01","fryech01","goodedr01","haywobr01","hughela01","ilgauzy01","jonesda02","jonesja02","skinnbr01","cagemi01","corbity01","curryde01","dudlech02","exumda01","knighbr03","nancela02","newmajo01","payneca01","boozeca01","davisba01","jackja01","willima01","benjabe01","bryanma01","dellama01","harpero01","harrijo01","kerrst01","leverca01","marshdo01","princta02","shumpim01","wilkele01","willisc01","diopde01","willide01","allenja01","balllo01","bryanth01","colesbi01","ehlocr01","hillty01","hopsosc01","jacksji01","kempsh01","kornelu01","laimbbi01","majerda01","markkla01","mitchdo01","niangge01","roberfr01","thurmna01","wesleda01","whatlen01","wilkige01","sessira01","telfase01","brownch01","ferryda01","fraziti01","fraziwa01","freewo01","harteis01","higgiro01","hoodro01","johnsan02","johnske02","jonesda03","laceysa01","nancela01","netora01","ollieke01","robincl01","robisda01","sextoco01","snower01","snydedi01","stausni01","weathcl01","wedmasc01","williho01","wrighlo02","amundlo01","casspom01","hawessp01","holliry01","pavloal01","speigma01","waltolu01","anderju01","baglejo01","calvima01","davisri01","dekkesa01","garlada01","greenja02","harrilu01","hendeal01","huntede01","jeromty01","johnsjo01","kemptti01","knighbr01","mcinnje01","mokespa01","murrala01","osmande01","porteke02","pricema01","reidjr01","robinla01","simmoko01","smithra01","wadede01","willier01","brownsh01","bynuman01","kaponja01","pargoje01","anderde01","bensoke01","blounco01","brandte01","brownmo01","butlemi02","campbto01","chrisma01","clemeba01","coltest01","crottjo01","dreilgr01","eganjo01","gatlich01","harprma01","jonesda01","merrisa01","nwabada01","okorois01","persowe01","pollasc01","potapvi01","russeca02","sandemi01","smithbi02","strusma01","valende01","whiteje01","woodsmi01","geeal01","hensojo01","hicksjj01","leuerjo01","mozgoti01","waitedi01","westde01","zellety01","anderro01","battljo01","beardbu01","boldema01","brooksc01","carrau01","carrke01","chapple01","choneji01","cookqu01","davisjo01","declean01","doleami01","dotsoda01","ferreyo01","hubbaph01","johnsed02","kenonla01","makerth01","mccawpa01","mccoyje01","mckinal01","millsch01","mitchmi01","mobleev01","okekech01","poquebe01","sheltlo01","silasja01","stevela01","stithbr01","surabo01","szczewa02","valenda01","walkefo01","weslewa01","willire01","gibsoda01","harrima01","liggide01"],"MIA":["jamesle01","johnsjo02","hasleud01","lowryky01","iguodan01","tuckepj01","arizatr01","loveke01","willike02","howarju01","onealsh01","johnsja01","millspa02","allenra02","onealje01","stackje01","thomaku01","butleji01","dragigo01","millemi01","burksal01","morrima02","anderch01","dampier01","lewisra02","mariosh01","wadedw01","crowdja01","ellinwa01","olynyke01","schayda01","denglu01","livinsh01","anderky01","bradlav01","paytoga01","portete01","stricro02","thorpot01","whiteha01","wiggian01","bibbymi01","butleca01","butlera01","greenge01","ilgauzy01","jonesja02","odomla01","stoudam01","corbity01","greenac01","leoname01","mournal01","powelno01","zelleco01","battish01","boshch01","cartean01","doolike01","jamesmi01","marksse01","richaqu01","udrihbe01","willija02","brownpj01","dedmode01","gillke01","hardaan01","harklma01","jonesde02","longgr01","oladivi01","ricegl01","richajo01","roziete01","shawbr01","wrighde01","anderry01","curryed01","magloja01","masonro01","poseyja01","adebaba01","barrybr01","bryanth01","colesbi01","hardati01","hillso01","hillty01","jacksji01","jonesed02","majerda01","masonan01","sallejo01","smithst01","beaslmi01","houseed01","mcrobjo01","wrighdo01","bowenbr01","edwarke01","ennisja01","grantga01","highsha01","johnsty01","laettch01","malonje01","robindu01","stausni01","weathcl01","winslju01","allenma01","anthojo01","arroyca01","barroea01","chalmma01","grangda01","randosh01","turiaro01","bjeline01","chapmre01","cummipa01","davisri01","daviste01","douglsh01","grantbr01","herroty01","martica02","mcgruro01","myerspe01","pincked01","sparrro01","vincega01","walkean02","brownsh01","kaponja01","willish03","achiupr01","alstora01","anderde01","austiis01","causwdu01","cebalce01","crottjo01","ellisla01","gatlich01","hastisc01","jonesda01","lenarvo01","lohaubr01","mashbja01","millste01","persowe01","seikaro01","smithto02","strusma01","williwa02","babbilu01","banksma01","douglto01","waitedi01","andersh01","besttr01","bolma01","doleami01","eacklle01","edwarbl01","gamblke01","geigema01","macksa01","mitchda01","owensbi01","walkesa01","waltode01","liggide01"],"LAL":["jamesle01","anthoca01","arizatr01","howardw01","jordade01","lopezbr01","westbru01","bryanko01","willilo02","chandty01","onealsh01","mcgeeja01","rondora01","artesro01","fishede01","gasolpa01","nashst01","abdulka01","greenda02","matthwe02","augusdj01","davisan02","drumman01","dudleja01","edwarja01","malonka01","morrima02","jamisan01","ratlith01","smithjo02","smithjr01","caldwke01","collida01","ellinwa01","gasolma01","schayda01","schrode01","thomais02","denglu01","beverpa01","bradlav01","clarkjo01","davised01","grantho01","hunteli01","johnsma02","kerseje01","lenal01","paytoga01","perkisa01","randlju01","smartma01","stephla01","barnema02","bogutan01","butleca01","caldejo01","fryech01","odomla01","bullore01","dinwisp01","divacvl01","greenac01","harpede01","horryro01","muscami01","nancela02","russeda01","blakest01","boozeca01","breweco01","kamanch01","pargoja01","vujacsa01","barnedi01","bazemke01","benjabe01","campbel01","chrisdo01","dantlad01","davisbr01","finnedo01","harpero01","ingrabr01","kleinjo01","paytoga02","princta02","ricegl01","shawbr01","washike01","zubaciv01","bassbr01","brownkw01","murphtr01","pricero01","radmavl01","youngni01","balllo01","barryjo01","bayloel01","beaslma01","bryanth01","carusal01","chambwi01","ellisle01","goodrga01","hartjo01","hayesni01","haywosp01","jacksji01","jonesed02","kennalu01","klebima01","kuzmaky01","lucasma01","mcadobo01","mclembe01","mixst01","monkma01","nelsodo01","rambiku01","richmmi01","roberfr01","rodmade01","sallejo01","scottby01","threase01","westje01","woodch01","beaslmi01","evansma01","farmajo01","mcrobjo01","sessira01","aytonde01","bambamo01","beatyze01","boonero01","brickfr01","bridgbi01","brownch01","connele01","doncilu01","fostegr01","foxri01","harremo01","hudsolo01","johnsst04","jonesda03","mccloge01","mckieaa01","mykhasv01","peelean01","robincl01","robisda01","russebr01","thompmy01","vandeja01","vanexni01","wagnemo01","woolror01","meeksjo01","turiaro01","waltolu01","calvima01","chanedo01","coopemi01","countme01","erickke01","foustla01","grantbr01","hachiru01","hayesja02","imhofda01","lynchge01","miltosh01","murratr01","nevitch01","nixonno01","reidjr01","rooksse01","russeca01","sparrro01","vincega01","walkelo01","wilkeja01","worthja01","brownsh01","bynuman01","cookbr01","duhonch01","hibbero01","johnswe01","kaponja01","linje01","poweljo01","willish03","atkinch01","blounco01","boozebo01","bowiesa01","brownst02","browntr01","campbto01","cebalce01","drewla01","eganjo01","georgde01","gilesha01","hairsha01","hortota01","krystla01","lovelcl01","luety01","martisl01","millean01","natersw01","nwabada01","oldhaja01","reddica01","reedda01","rochejo01","smithto02","teaglte01","brookma01","hilljo01","mozgoti01","udokaim01","waitedi01","abdulma01","allenlu01","blockjo01","carrke01","choneji01","clarkar01","cookqu01","gabriwe01","goodwjo01","haleyja01","harvean01","hawkito01","huffja01","jonesdw01","jonesma05","kingji01","kupchmi01","larusru01","matthwe01","mccluma01","mccoyje01","mckinal01","mikkeve01","patteru01","reaveau01","scottch01","selvyfr01","stronde01","toscaju01","walkesa01","weslewa01","danietr01","harrima01","machasc01","mbengdj01"],"BOS":["johnsjo02","greenje02","horfoal01","garneke01","holidjr01","milescj01","onealsh01","piercpa01","terryja01","parisro01","rondora01","allenra02","onealje01","wallara01","cousybo01","vucevni01","billuch01","haywago01","irvinky01","thomptr01","ratlith01","crowdja01","griffbl01","morrima03","olynyke01","schrode01","thomais02","battito01","perkike01","bradlav01","fournev01","gilmoar01","listeal01","monrogr01","paytoga01","poweldw01","smartma01","teaguje01","walkeke02","wilkido01","allento01","barbole01","greenge01","jeffeal01","johnsam01","mooremi01","nelsoja01","princta01","wallage01","havlijo01","kanteen01","muscami01","porzikr01","silaspa01","collija04","doolike01","humphkr01","jamesmi01","barroda01","braunca01","brownja02","brownpj01","bryanma01","cassesa01","finlemi01","greenri01","kleinjo01","longgr01","masseto01","mooreet01","richajo01","roziete01","shawbr01","washike01","bassbr01","leeco01","leeda02","murphtr01","poseyja01","aingeda01","anderke01","architi01","baynear01","bouchch01","brogdma01","colesbi01","johnsde01","kornelu01","mcadobo01","nelsodo01","roberfr01","tatumja01","vonleno01","wesleda01","whitede01","yabusgu01","bayleje01","boganke01","houseed01","robinna01","scalabr01","telfase01","wilcoch01","wrighbr03","bakervi01","birdla01","bowenbr01","brickfr01","cheanca01","cowenda01","craigto01","doziepj01","foxri01","guglito01","hendege01","marbust01","mcdanxa01","mchalke01","mykhasv01","parkeja01","russebi01","sandeto01","simonan01","stausni01","theisda01","wagnemo01","waltobi01","wedmasc01","williro04","anthojo01","arroyca01","daniema01","holliry01","jerebjo01","milicda01","pavloal01","pietrmi01","randosh01","turneev01","awtrede01","baglejo01","bingda01","birdsot01","brownde01","brownra02","chanedo01","conlege01","countme01","davisri01","douglsh01","ellispe01","greenja02","hernaju01","howelba01","jacksju01","jonessa01","kitegr01","overtdo01","pincked01","robinla01","rogerro01","walkean02","westppa01","whitejo01","willier01","willigr01","wolfjo01","gomesry01","atkinch01","barneji02","brissos01","embrywa01","fernabr01","humphja01","jonesda01","jonespo01","knighbi01","lohaubr01","lovelcl01","maxwece01","nesmiaa01","paxsoji02","phillan01","pollasc01","potapvi01","pritcpa01","sharmbi01","tillmxa01","banksma01","brookma01","crawfjo02","davisgl01","thornma01","westde01","zellety01","abdulza01","bantoda01","bucknqu01","carrml01","champju01","declean01","delkto01","edwarbl01","fordch01","fortsda01","gamblke01","garzalu01","greensi01","hausesa01","lafrera01","macaued01","maravpe01","mccarwa01","naderab01","naullwi01","nichoja01","ojelese01","quetane01","ramsefr01","risenar01","scottch01","sichtje01","simmoco01","stevela01","stithbr01","stronde01","szczewa02","wickssi01","willira01","krstine01"],"PHO":["johnsjo02","paulch01","cartevi01","duranke01","tuckepj01","arizatr01","gordoer01","crawfja01","youngth01","chandty01","hillgr01","kiddja01","onealsh01","lopezro01","mcgeeja01","nashst01","onealje01","thomaku01","biyombi01","dragigo01","bealbr01","dudleja01","edwarja01","morrima02","smithis01","mariosh01","mcdyean01","crowdja01","curryse01","johnsed03","morrima03","plumlma01","robincl02","schayda01","thomais02","tollian01","turkohe01","bledser01","chambto01","lenal01","monrogr01","nurkiju01","rubiori01","westma01","barbole01","barnema02","diawbo01","fryech01","greenge01","jonesja02","richaja01","skinnbr01","stoudam01","barklch01","bookede01","bullore01","corbity01","dudlech02","greenac01","horryro01","jonesty01","knighbr03","oubreke01","payneca01","paytoel01","rosste01","silaspa01","humphkr01","marksse01","richaqu01","bryanma01","cassesa01","daviswa03","finlemi01","hardaan01","holmeri01","jonesde02","kerrst01","kleinjo01","mannida01","mooreet01","outlabo01","saricda01","warretj01","willisc01","anderry01","bellra01","gortama01","pricero01","reddmi01","aingeda01","baynear01","brookdi01","delnevi01","dunntr01","goodrga01","hayesni01","hornaje01","jacksji01","johnsde01","lucasma01","majerda01","morrimo01","onealro01","piatker01","rambiku01","beaslmi01","brookaa01","houseed01","telfase01","wrighbr03","adamsal01","allengr01","aytonde01","bridgmi01","brownch01","busedo01","carteje01","craigto01","eubandr01","gallola01","gilliar01","guglito01","highsha01","holidaa01","houseda01","johnsfr01","johnske02","johnsty01","jonesda03","kaminfr01","leeda03","marbust01","mccloge01","mcdanxa01","meltode01","nancela01","okogijo01","roseja01","shamela01","snydedi01","thomati01","williho01","amundlo01","barroea01","bellch01","childjo01","collija03","pietrmi01","randosh01","scolalu01","awtrede01","brownra02","buechju01","chapmre01","coffeam01","countme01","eisleho01","erickke01","grantbr01","harrish01","jacksju01","jeromty01","johnsca02","kemptti01","knighbr01","langan01","martico01","milleol01","pincked01","rogerro01","tisdawa01","vanardi01","vanarto01","westppa01","brownsh01","davisjo02","johnswe01","addisra01","bateske01","blounco01","bolbo01","brownmi01","carrojo01","cebalce01","chrisma01","diallch01","eliema01","heardga01","humphja01","kelleri01","legleti01","livinra01","metuch01","morrich01","nealyed01","perryel01","persowe01","reedda01","richani01","robintr01","sandemi01","smithja04","smithto02","soberri01","watanyu01","willimi02","banksma01","fredeji01","leuerjo01","thornma01","warriha01","weemsso01","bazleda01","bradldu01","delkto01","foxji01","garripa01","gattike01","goodwjo01","greenja05","hodgecr01","jacksjo02","johnsgu01","landajo01","littlna01","liveris01","longllu01","mccarwa01","naderab01","schluda01","scottch01","scottde01","weslewa01","acyqu01","budinch01","danietr01","jenkijo01"],"ATL":["johnsjo02","cartevi01","horfoal01","howardw01","willike02","crawfja01","willilo02","terryja01","gallida01","malonmo01","millspa01","millspa02","rondora01","mohamna01","stackje01","wallara01","ilyaser01","matthwe02","brandel01","korveky01","longjo01","dampier01","harrial01","pachuza01","ratlith01","smithjo02","hardati02","mccolcj01","mutomdi01","rollitr01","schrode01","tollian01","dunlemi02","harride01","mcgratr01","willima02","capelca01","holidju01","lenal01","stephla01","teaguje01","westma01","wilkido01","bibbymi01","caldejo01","diawbo01","jacksst02","jonesda02","mooremi01","sefolth01","smithjo03","wilkida02","carran01","corbity01","muscami01","nancela02","porzikr01","silaspa01","belinma01","collija04","hinriki01","humphkr01","pargoja01","przybjo01","stevede01","augmost01","bazemke01","cheekma01","dedmode01","dienggo01","dunnkr01","hieldbu01","leverca01","longgr01","mannida01","murrade01","paultbi01","princta02","wilkele01","wrighde01","greenwi01","radmavl01","anderke01","barryjo01","bellawa01","bogdabo01","colesbi01","collijo01","ehlocr01","grabojo01","gueriri01","hagancl01","hillso01","jacksji01","johnsge02","kennalu01","niangge01","scottmi01","smithst01","snellto01","whatlen01","carrode01","evansma01","beatyze01","blaylmo01","bridgbi01","brownch01","fostegr01","guglito01","holidaa01","hudsolo01","huertke01","johnsan02","jonesda03","kaminfr01","kukocto01","laettch01","leeda03","levincl01","nunnaja01","parkeja01","riverdo01","snydedi01","theusre01","webbsp01","wrighlo02","youngtr01","childjo01","iveyro01","thomaet01","turneev01","abdursh01","alexani01","anderju01","baglejo01","bullama01","foustla01","gambeda01","hendeal01","huntede01","kemptti01","knighbr01","knoxke01","langan01","mannte01","mathega01","moncrsi01","mullije01","robinla01","rooksse01","roundda01","smithra01","sparrro01","vanarto01","vaughja01","vincega01","walkean02","willigu01","davisjo02","linje01","morroan01","parsoch01","poweljo01","andergr01","bembrde01","beysa01","breuera01","caldwjo01","dorsety01","drewjo01","ellisla01","fernabr01","ferredu01","hastisc01","koncajo01","livinra01","lovelcl01","luety01","luwawti01","martisl01","mcmilto01","millean01","okongon01","persowe01","pettibo01","reddica01","robingl01","robintr01","smithto02","washiji01","workmha01","armsthi01","babbilu01","crawfjo02","evansje01","jonesso01","macksh01","petrojo01","zellety01","abdulma01","barnhjo01","battljo01","beardbu01","bradldu01","brownch02","chapple01","coopesh01","davisjo01","delkto01","ferrybo01","glennmi01","greensi01","harvean01","hawesst01","iwundwe01","johnsed02","johnsja05","johnsol01","jonesdw01","kispeco01","krejcvi01","kuminjo01","landajo01","leecl01","macaued01","maravpe01","matthwe01","mccoyje01","meriwjo01","morrija01","naullwi01","nichoja01","normake01","ohldo01","schluda01","selvyfr01","smithke01","surabo01","wallaty01","willira01","zasloma01","crabbal01","jenkijo01","martica01","nealga01"],"BRK":["johnsjo02","cartevi01","duranke01","greenje02","garneke01","jordade01","lopezbr01","crawfja01","hardeja01","templga01","youngth01","kiddja01","piercpa01","terryja01","aldrila01","johnsja01","millspa01","millspa02","stackje01","dragigo01","jefferi01","drumman01","dudleja01","irvinky01","mahorri01","morrima02","smithjo02","curryse01","ellinwa01","griffbl01","mutomdi01","plumlma01","robincl02","schrode01","battito01","harride01","livinsh01","martike01","davised01","favorde01","willibu01","boykiea01","greenge01","jacksst02","kirilan01","mooremi01","wallage01","cagemi01","dinwisp01","dudlech02","ervinju01","kingbe01","mournal01","newmajo01","russeda01","chandwi01","collija04","doolike01","evansre01","humphkr01","jackja01","stevede01","vujacsa01","barryri01","benjabe01","bogdabo02","brownpj01","campbel01","cassesa01","cheekma01","colemde01","finnedo01","gillke01","harrijo01","kleinjo01","leverca01","masseto01","okafoja01","paultbi01","princta02","shumpim01","warretj01","williaa01","anderal01","anderry01","diopde01","leeco01","magloja01","murphtr01","najered01","willide01","allenja01","anderke01","architi01","armstda01","dawkida01","gminsmi01","jacksji01","johnsge02","lucasma01","masonan01","mcadobo01","noelne01","onealro01","vonleno01","wesleda01","boganke01","carrode01","farmajo01","foyera01","houseed01","outlatr01","scalabr01","simmobo01","wrighbr03","blaylmo01","bridgmi01","brownbr01","brownch01","carteje01","connele01","edwarke01","ennisja01","floydsl01","gallola01","gilliar01","higgiro01","jacksja01","jacksph01","johnsan02","johnsty01","laceysa01","marbust01","mcdanxa01","ollieke01","packro01","roberan03","robincl01","shamela01","simmobe01","stausni01","theusre01","woolror01","allenma01","bargnan01","childjo01","cunnida01","gadzuda01","okurme01","scolalu01","watsocj01","anderju01","baglejo01","birdsot01","bradlsh01","buechju01","claxtni01","davishu01","douglsh01","flemive01","harrilu01","harrish01","johnsca02","johnsmi01","mannte01","mcinnje01","miltosh01","murrala01","myerspe01","overtdo01","portemi01","rogerro01","shortpu01","smithde03","sparrro01","turneje01","vaughja01","walkelo01","willier01","blatcan01","linje01","morroan01","thomala01","willish03","addisra01","alstora01","andergr01","askewvi01","bateske01","bembrde01","bowiesa01","brownmo01","carrojo01","catchha01","galemi01","gatlich01","gilesha01","goldwan01","hayeski01","holliro01","jonesda01","kelleri01","kingal01","lovebo01","luwawti01","millste01","morrich01","natersw01","nattca01","newlimi01","nwabada01","perryel01","porteke01","rochejo01","seikaro01","shackch01","sumneed01","watanyu01","woodsmi01","booketr01","brookma01","emmetan01","farieke01","mozgoti01","petrojo01","thornma01","zellety01","anderro01","benoida01","besttr01","bradldu01","choneji01","danieme01","eakinji01","ellenhe01","elmorle01","ferreyo01","foxji01","gabriwe01","haleyja01","johnsal02","kenonla01","melchbi01","moorejo01","pinsoth01","sharpda01","simpsra01","taylobr01","thomaca02","walkefo01","watfotr01","willira01","willire01","willizi02","acyqu01","crabbal01","douglch01","krstine01"],"UTA":["johnsjo02","conlemi01","greenje02","loveke01","gayru01","milescj01","millspa01","millspa02","fishede01","hillge01","ilyaser01","matthwe02","jefferi01","korveky01","burksal01","haywago01","malonka01","stockjo01","crowdja01","goberru01","olynyke01","schayda01","harride01","willima02","anderky01","chambto01","clarkjo01","davised01","favorde01","inglejo01","jacksma01","monrogr01","nurkiju01","polynol01","rubiori01","whiteha01","diawbo01","jeffeal01","kirilan01","mooremi01","sefolth01","baileth01","carran01","corbity01","curryde01","exumda01","kanteen01","kingbe01","boozeca01","humphkr01","stevede01","tinslja01","watsoea01","willima01","bogdabo02","dantlad01","davisbr01","donalja01","dunnkr01","greenri01","lylestr01","mannida01","marshdo01","masseto01","paultbi01","williaa01","bellra01","lucasjo02","pricero01","willide01","beaslma01","bellawa01","bradlto01","burketr01","collijo01","coopewa01","dawkida01","goodrga01","haywosp01","hornaje01","markkla01","mitchdo01","niangge01","onealro01","roberfr01","starkjo01","carrode01","foyera01","koufoko01","novakst01","allengr01","bambamo01","boonero01","cheanca01","eubandr01","fostegr01","gilliar01","guglito01","hoodro01","houseda01","jacksja02","jonesda03","malonje01","mykhasv01","netora01","russebr01","sextoco01","vandeja01","amundlo01","arroyca01","biedran01","collija03","howarjo01","jerebjo01","okurme01","pavloal01","alexani01","calvima01","countme01","cummipa01","eisleho01","harrish01","hernaju01","knighbr01","konchjo01","mudiaem01","spencfe01","vaughja01","elsonfr01","rushbr01","udohek01","austiis01","barneji02","bensoke01","brownmi01","crottjo01","drewjo01","eatonma01","griffda01","harprma01","hortota01","hudsotr01","humphja01","kelleri01","krystla01","legleti01","livinra01","morrich01","ostergr01","robintr01","thornbo01","valende01","whiteje01","booketr01","brewero02","evansje01","macksh01","andersh01","bazleda01","benoida01","blockjo01","bristal01","edwarbl01","hartja01","jacksfr01","johnsol01","maravpe01","martike04","meriwjo01","poquebe01","pottemi01","ruffimi01","samanlu01","toscaju01","tripuke01","harrimi01"],"HOU":["johnsjo02","paulch01","lowryky01","anthoca01","duranke01","greenje02","tuckepj01","arizatr01","gordoer01","howardw01","westbru01","willike02","hardeja01","templga01","willilo02","chandty01","howarju01","terryja01","malonmo01","artesro01","dragigo01","cambyma01","hilarne01","augusdj01","oaklech01","smithis01","adamsst01","johnsed03","morrima03","mutomdi01","olajuha01","olynyke01","rollitr01","schrode01","walljo01","mcgratr01","beverpa01","bradlav01","capelca01","couside01","curetea01","jacksma01","jonesca01","pippesc01","stricro02","thorpot01","boykiea01","dalemsa01","greenge01","millebr01","sefolth01","smithjo03","barklch01","bullore01","carran01","covinro01","hayesel01","horryro01","johnsav01","knighbr03","pattepa01","riverau01","battish01","breweco01","jamesmi01","barryri01","bryanma01","cartemi01","cassesa01","drexlcl01","finnedo01","jonesch01","masseto01","oladivi01","paultbi01","ricegl01","shumpim01","anderry01","leeco01","lucasjo02","martike02","mbahalu01","poseyja01","barrybr01","barryjo01","brookdi01","dunlemi01","ehlocr01","greenjo01","jacksji01","lucasjo01","marjabo01","mclembe01","piatker01","reidro01","threase01","vanvlfr01","wesleda01","woodch01","beaslmi01","boganke01","brookaa01","carrode01","hayesch01","jeffrja01","novakst01","wrighbr03","bakervi01","brownch01","connele01","ennisja01","floydsl01","freewo01","harremo01","harteis01","hendege01","holidaa01","houseda01","jacksja01","johnsfr01","kaminfr01","maxweve01","murphca01","nunnaja01","okogijo01","smithla01","theisda01","weathcl01","brownbo02","casspom01","garcifr01","scolalu01","bullama01","cabocbr01","dekkesa01","gambeda01","harriot01","jacksbo01","johnsjo01","kojisdo01","mathega01","mokespa01","murratr01","nevitch01","owensto01","porteke02","robinla01","shortpu01","wilsodj01","cookbr01","davisjo02","delfica01","landrca01","linje01","mingya01","parsoch01","poweljo01","alstora01","anderde01","barneji02","bowenry01","brownst02","carrojo01","chrisma01","eganjo01","eliema01","fernabr01","jeffrda01","livinra01","luety01","marinja01","maxwece01","mcglojo01","millean01","moblecu01","newlimi01","nwabada01","oldhaja01","smithbi02","tateja01","teaglte01","thomake01","tomjaru01","wardch01","williwa02","woodsmi01","aldrico01","armsthi01","asikom01","brewero02","douglto01","farieke01","hilljo01","lawsoty01","thornma01","abdulza01","andersh01","barnhjo01","blockjo01","bowiean01","brooksc01","catoke01","greenja05","guokama02","hawesst01","hollili01","jonesdw01","jonesma05","landajo01","leaveal01","macksa01","martike04","mccraro01","meriwjo01","norrimo01","pricebr01","sengual01","smithke01","surabo01","tayloma01","wellsbo01","budinch01","conrowi01","danietr01","dorsejo01","harrimi01","joneste01","machasc01","motiedo01"],"NOP":["paulch01","arizatr01","gordoer01","jordade01","holidjr01","templga01","chandty01","johnsja01","lopezro01","rondora01","redicjj01","davisan02","smithis01","valanjo01","anderch01","smithjr01","adamsst01","collida01","mccolcj01","olynyke01","thomais02","perkike01","westda01","bledser01","couside01","favorde01","randlju01","stephla01","allento01","butlera01","daniean01","nelsoja01","okafoem01","smithjo03","aminual01","looneke01","nancela02","paytoel01","riverau01","zelleco01","belinma01","davisba01","jackja01","jamesmi01","kamanch01","marksse01","pargoja01","salmojo01","stojape01","augmost01","brownpj01","campbel01","hieldbu01","ingrabr01","mooreet01","murrade01","okafoja01","richajo01","williaa01","anderry01","bassbr01","elyme01","greenwi01","magloja01","masonro01","poseyja01","smithja02","anderke01","armstda01","balllo01","hartjo01","hillso01","milleda01","smithst01","snellto01","wesleda01","woodch01","bayleje01","petermo01","robinna01","bambamo01","brownbr01","ennisja01","fraziti01","gallola01","johnsst04","nunnaja01","packro01","theisda01","willike04","amundlo01","brownbo02","casspom01","childjo01","cunnida01","evansty01","pavloal01","alexani01","greenja02","hayesja02","hernawi01","jacksbo01","lynchge01","poolejo01","rogerro01","rooksse01","willizi01","ajincal01","johnswe01","landrca01","morroan01","pondequ01","thomala01","beysa01","bowenry01","diallch01","grahade01","livinra01","marshna01","mashbja01","nowelja01","satorto01","seldewa01","toupaax01","armsthi01","asikom01","babbilu01","crawfjo02","douglto01","fredeji01","geeal01","jonesso01","songada01","thornma01","warriha01","willire02","alvarjo01","cookqu01","gabriwe01","hartja01","iwundwe01","jacksfr01","johnsal02","joneshe01","masonde01","murphtr02","norrimo01","robinje02","wallaty01","wellsbo01","grayaa01","joneste01","liggide01","mbengdj01","motiedo01"],"LAC":["paulch01","greenje02","tuckepj01","batumni01","gordoer01","jordade01","lopezbr01","westbru01","crawfja01","hardeja01","templga01","willilo02","hillgr01","piercpa01","gallida01","georgpa01","malonmo01","millspa02","rondora01","harrito02","leonaka01","redicjj01","billuch01","brandel01","cambyma01","millean02","randoza01","bealbr01","dudleja01","edwarja01","ibakase01","jacksre01","jamisan01","collida01","cummite01","griffbl01","morrima03","plumlma01","walljo01","livinsh01","martike01","turkohe01","beverpa01","bledser01","bradlav01","chambto01","couside01","curetea01","jacksma01","polynol01","stephla01","wilkido01","barnema02","boykiea01","butleca01","butlera01","feltora01","goodedr01","jacksst02","jonesda02","maggeco01","mooremi01","odomla01","skinnbr01","smithjo03","aminual01","bullore01","cagemi01","covinro01","pattepa01","piercri01","powelno01","riverau01","blakest01","chandwi01","davisba01","doolike01","evansre01","kamanch01","noahjo01","richaqu01","vujacsa01","willima01","benjabe01","cassesa01","chrisdo01","dantlad01","donalja01","dunnkr01","harklma01","harpero01","jonesde02","mannida01","masseto01","outlabo01","ricegl01","washike01","williaa01","zubaciv01","anderal01","bassbr01","elyme01","gortama01","greenwi01","mbahalu01","radmavl01","youngni01","anderke01","barrybr01","bogdabo01","collijo01","greenja01","johnsge02","kennalu01","marjabo01","martida01","mcadobo01","piatker01","scottmi01","whatlen01","farmajo01","foyera01","houseed01","novakst01","outlatr01","robinna01","simmobo01","telfase01","wilcoch01","aguirma01","bakervi01","bambamo01","connele01","ennisja01","eubandr01","freewo01","gilgesh01","grantga01","harremo01","harteis01","hoodro01","jacksja01","johnsma01","riverdo01","shamela01","simmobe01","theisda01","thomati01","vandeki01","waltobi01","winslju01","wrighlo02","brownbo02","collija03","grangda01","hawessp01","holliry01","speigma01","turiaro01","bridgju01","coffeam01","davisri01","dekkesa01","douglsh01","eisleho01","garlada01","kemptti01","kitegr01","knighbr01","mannte01","mcgruro01","mcinnje01","murrala01","nixonno01","overtdo01","porteke02","rogerro01","rooksse01","smithra01","weissbo01","wilkeja01","wolfjo01","cookbr01","gomesry01","johnswe01","poweljo01","udohek01","anderde01","austiis01","brownmo01","catchha01","drewla01","duckwke01","goldwan01","heardga01","hudsotr01","knighbi01","livinra01","marinja01","maxwece01","mcmilto01","moblecu01","natersw01","perryel01","robinje01","smithbi02","vaughlo01","washiji01","whiteje01","woodsmi01","youngda01","aldrico01","davisgl01","jonesso01","abdulma01","abdulza01","bantoda01","dailequ01","ferreyo01","gabriwe01","glennmi01","guokama02","hartja01","harvean01","hodgecr01","hollili01","hylanbo01","jacksis01","komivho01","martike04","mccarwa01","normake01","ojelese01","patteru01","richapo01","schluda01","stronde01","taylobr01","tayloma01","valenda01","wallaty01","waltode01","wickssi01","willial02","willire01","conrowi01","dioguik01","douglch01","pendeje02"],"OKC":["paulch01","anthoca01","duranke01","greenje02","horfoal01","westbru01","hardeja01","gallida01","georgpa01","gibsota01","allenra02","fishede01","mohamna01","thomaku01","biyombi01","hillge01","ilyaser01","augusdj01","haywago01","ibakase01","jacksre01","morrima02","smithis01","lewisra02","smithjo02","adamsst01","cummite01","johnsed03","schrode01","livinsh01","perkike01","chambto01","ellisda01","ewingpa01","favorde01","grantho01","grantje01","kerseje01","listeal01","mcderdo01","paytoga01","perkisa01","polynol01","butleca01","collini01","daniean01","feltora01","mooremi01","sefolth01","wilkida02","cagemi01","cartwbi01","johnsav01","kanteen01","muscami01","pattepa01","payneca01","piercri01","schrede01","silaspa01","breweco01","evansre01","watsoea01","barroda01","benjabe01","campbel01","donalja01","gillke01","lambje01","marshdo01","mckeyde01","oladivi01","sabondo01","saricda01","wilkele01","williaa01","wingada01","martike02","radmavl01","ridnolu01","anderke01","barrybr01","bradlto01","carusal01","ehlocr01","haywosp01","hopsosc01","johnsde01","johnsge02","kempsh01","lucasjo01","lucasma01","milleda01","noelne01","persoch01","sikmaja01","threase01","foyera01","novakst01","petermo01","robinna01","telfase01","wilcoch01","bakervi01","bertada01","brickfr01","brownfr01","corzida01","doziepj01","fostegr01","gilgesh01","harteis01","hawkihe01","hendege01","higgiro01","johnser02","johnsvi01","maxweve01","mcdanxa01","mykhasv01","ollieke01","roberan03","rosema01","snower01","snydedi01","willike04","iveyro01","thomaet01","awtrede01","ballagr01","dortlu01","ellispe01","jacksju01","jeromty01","johnsjo01","kojisdo01","mcmilna01","webstma01","weissbo01","westppa01","willigu01","elsonfr01","gomesry01","morroan01","thomala01","anthogr01","askewvi01","atkinch01","boozebo01","bowenry01","brownmo01","clemeba01","crottjo01","diallha01","heardga01","jamesje01","joeis01","livinra01","lovebo01","luwawti01","potapvi01","reynoje01","soberri01","youngda01","aldrico01","brewero02","duprero01","petrojo01","waitedi01","westde01","willire02","abdulma01","abdulza01","allenlu01","bazleda01","beardbu01","boothca01","brownch02","burtode02","clarkar01","dailequ01","fortsda01","foxji01","giddejo01","hanzlbi01","harvean01","hawesst01","johnscl01","johnsed02","johnsst03","krejcvi01","manntr01","masonde01","mccoyje01","meschto01","naderab01","norrimo01","owensbi01","patteru01","robinje02","sheltlo01","szczewa02","waterli01","wiggiaa01","gelabmi01","krstine01","liggide01"],"GSW":["paulch01","duranke01","horfoal01","iguodan01","willike02","crawfja01","curryst01","varejan01","mcgeeja01","parisro01","fishede01","onealje01","butleji01","thompkl01","jefferi01","barneha02","burksal01","greendr01","josepco01","smithis01","dampier01","harrial01","jamisan01","pachuza01","smithjo02","cummite01","curryse01","robincl02","schrode01","tollian01","dunlemi02","livinsh01","westda01","anderky01","couside01","holidju01","kerseje01","listeal01","wiggian01","barbole01","barnema02","bogutan01","boykiea01","hughela01","jacksst02","maggeco01","mooremi01","richaja01","davisda01","johnsav01","kingbe01","looneke01","mullich01","oubreke01","piercri01","porteot01","porzikr01","russeda01","belinma01","blakest01","davisba01","jackja01","barryri01","bazemke01","dedmode01","greenri01","hieldbu01","marshdo01","masseto01","paytoga02","saricda01","shawbr01","washike01","webbech01","bellra01","brownkw01","cardibr01","ellismo01","leeda02","murphtr01","najered01","radmavl01","youngni01","barryjo01","boguemu01","bouchch01","chambwi01","colesbi01","coopewa01","costela01","delnevi01","grabojo01","greenja01","hardati01","hillty01","jacksji01","johnsge02","lucasjo01","richmmi01","starkjo01","thurmna01","arenagi01","robinna01","wrighbr03","wrighdo01","blaylmo01","bridgbi01","brownch01","cheanca01","connele01","dierkco01","divindo01","floydsl01","freewo01","guglito01","higgiro01","jacksja01","johnsma01","jonesda03","leeda03","meltode01","smithla01","sprewla01","vanexni01","weathcl01","amundlo01","barroea01","bellch01","biedran01","bynumwi01","casspom01","gadzuda01","jerebjo01","pietrmi01","speigma01","turiaro01","watsocj01","arizipa01","ballagr01","bjeline01","buechju01","caulewi01","croshau01","erickke01","foylead01","gambeda01","jeromty01","johnsmi01","knoxke01","mokespa01","mullije01","poolejo01","pricema01","robingl02","robinla01","rodgegu01","russeca01","shortpu01","spencfe01","whitejo01","wilkeja01","willigu01","landrca01","linje01","morroan01","pargoje01","poweljo01","rushbr01","udohek01","alexavi01","armstbj01","askewvi01","attleal01","barneji02","blounco01","carrojo01","chrisma01","eliema01","ferredu01","galemi01","gatlich01","georgde01","golato01","hudsotr01","jonesda01","jonespo01","legleti01","livinra01","lucasje01","nealyed01","phillan01","presspa01","robinje01","seikaro01","smithad01","teaglte01","whiteje01","wisemja01","armsthi01","brookma01","crawfjo02","douglto01","thompja02","willire02","abdulma01","beardbu01","belljo01","bolma01","cheniph01","cookqu01","declean01","delkto01","fortsda01","grayeje01","hightwa01","johnsst03","kenonla01","kingji01","kuminjo01","larusru01","leecl01","macksa01","mccawpa01","mckinal01","mengejo01","meschto01","millsch01","moodymo01","naullwi01","owensbi01","randlch01","raycl01","schluda01","shuege01","surabo01","toscaju01","waterli01","dioguik01","martica01","mbengdj01"],"SAS":["paulch01","willike02","derozde01","gayru01","templga01","youngth01","duncati01","aldrila01","malonmo01","millspa02","gasolpa01","mohamna01","parketo01","thomaku01","biyombi01","greenda02","hillge01","leonaka01","jefferi01","millean02","barneha02","josepco01","ginobma01","mcdyean01","ratlith01","cummite01","olynyke01","plumlma01","tollian01","turkohe01","westda01","anderky01","ellisda01","gilmoar01","jonesca01","kerseje01","mcderdo01","portete01","stricro02","wilkido01","butlera01","daniean01","diawbo01","goodedr01","jacksst02","carran01","corbity01","horryro01","johnsav01","belinma01","cartean01","mahinia01","marksse01","udrihbe01","bryanma01","cheekma01","dedmode01","dienggo01","finlemi01","kerrst01","lylestr01","masseto01","murrade01","paultbi01","poeltja01","richajo01","wingada01","bonnema01","elyme01","leeda02","martike02","masonro01","barrybr01","baynear01","colliza01","delnevi01","dunlemi01","foxde01","gervige01","greenja01","hagancl01","johnsge02","kornelu01","lucasjo01","marjabo01","persoch01","roberfr01","robinda01","rodmade01","smithst01","whatlen01","whitede01","boganke01","carrode01","novakst01","simmobo01","bertada01","boonero01","bowenbr01","brickfr01","brownch01","corzida01","dietrco01","eubandr01","ferryda01","floydsl01","higgiro01","jacksja01","johnsst04","johnsty01","johnsvi01","maxweve01","perduwi01","riverdo01","robisda01","rosema01","smithla01","stoudda01","thompmy01","vanexni01","anthojo01","carroma01","cunnida01","buechju01","calvima01","croshau01","dampilo01","eisleho01","elliose01","forbebr01","greenda01","hernaju01","johnske04","kemptti01","mclaujo01","myerspe01","nestera01","nevitch01","olberma01","osmande01","owensto01","reidjr01","roberal01","spencfe01","vaughja01","walkelo01","willier01","brownsh01","elsonfr01","fordtj01","pondequ01","anderde01","andergr01","bateske01","duckwke01","eliema01","galemi01","goldwan01","grahade01","jonestr01","kingal01","knighbi01","krystla01","lohaubr01","metuch01","natersw01","nattca01","nealyed01","paxsojo01","presspa01","robingl01","sandemi01","satorto01","tucketr01","vassede01","wardch01","whiteje01","whitnch01","geeal01","udokaim01","willire02","zellety01","alexaco01","bassech01","bowiean01","bristal01","chapple01","eakinji01","greensi02","haleyja01","hartja01","hightwa01","johnsal02","johnsst03","jonesla01","kenonla01","landajo01","macksa01","mamuksa01","matthwe01","mitchmi01","moorejo01","morrija01","samanlu01","silasja01","walkesa01","waterli01","willira01","willire01","blairde01","dioguik01","motiedo01","nealga01","pendeje02"],"MEM":["lowryky01","cartevi01","conlemi01","greenje02","gayru01","milescj01","templga01","johnsja01","rosede01","gasolpa01","biyombi01","greenda02","millemi01","randoza01","smithis01","valanjo01","anderch01","adamsst01","caldwke01","crowdja01","curryse01","ellinwa01","gasolma01","tollian01","anderky01","bradlav01","davised01","holidju01","smartma01","stephla01","thorpot01","allento01","barnema02","bibbymi01","daniean01","goodedr01","jonesda02","princta01","skinnbr01","carran01","jonesty01","battish01","collija04","doolike01","noahjo01","tinslja01","udrihbe01","watsoea01","willija02","benjabe01","dienggo01","longgr01","masseto01","outlabo01","williaa01","wrighde01","brownkw01","cardibr01","leeco01","poseyja01","brookdi01","greenja01","hillso01","iversal01","jonesed02","kennalu01","martida01","mclembe01","scottby01","wilkige01","arenagi01","bayleje01","carrode01","farmajo01","koufoko01","wrighbr03","allengr01","anderni01","baglema01","carteje01","edwarke01","ennisja01","fraziti01","jacksja02","meltode01","peelean01","stoudda01","winslju01","wrighlo02","arthuda01","casspom01","chalmma01","cunnida01","evansty01","holliry01","milicda01","speigma01","abdursh01","cabocbr01","clarkbr01","foylead01","harriot01","harrish01","jacksbo01","jeromty01","knighbr01","konchjo01","lynchge01","moranja01","robinla01","simmoko01","westdo01","davisjo02","pargoje01","parsoch01","pondequ01","thomaty01","abdulma02","anthogr01","atkinch01","austiis01","banede01","dorsety01","jeffrda01","jonesda01","merrisa01","nowelja01","perryel01","persowe01","seldewa01","tillmxa01","watanyu01","brewero02","brookma01","douglto01","emmetan01","leuerjo01","macksh01","mayooj01","warriha01","zellety01","aldamsa01","bassech01","belljo01","buckngr01","edwarbl01","gabriwe01","gattike01","goodwjo01","harvean01","huffja01","jacksjo02","landajo01","macksa01","norrimo01","pricebr01","scottde01","stevela01","wellsbo01","willizi02","conrowi01","danietr01"],"TOR":["lowryky01","cartevi01","tuckepj01","willike02","derozde01","gayru01","milescj01","templga01","willilo02","youngth01","johnsja01","onealje01","biyombi01","dragigo01","greenda02","leonaka01","billuch01","cambyma01","augusdj01","ibakase01","josepco01","longjo01","oaklech01","valanjo01","mariosh01","gasolma01","olajuha01","olynyke01","schrode01","willihe01","mcgratr01","parkean01","turkohe01","curetea01","davised01","hunteli01","jacksma01","lenal01","monrogr01","stricro02","barbole01","butlera01","caldejo01","johnsam01","bartowi01","corbity01","curryde01","pattepa01","porteot01","powelno01","rosste01","belinma01","boshch01","cartean01","evansre01","humphkr01","jackja01","jamesmi01","marksse01","pargoja01","salmojo01","stojape01","benjabe01","chrisdo01","ingrabr01","marshdo01","masseto01","poeltja01","siakapa01","williaa01","wrighde01","anderal01","bonnema01","lucasjo02","magloja01","masonro01","anunoog01","baynear01","boguemu01","bouchch01","hayesni01","martida01","sallejo01","vanvlfr01","bayleje01","carrode01","hayesch01","novakst01","petermo01","telfase01","villach01","bambamo01","brownbr01","davisan01","fostegr01","hoodro01","johnsst04","mykhasv01","roseja01","stoudda01","trentga02","arroyca01","bargnan01","meeksjo01","pietrmi01","scolalu01","barrerj01","brownde01","cabocbr01","currymi01","davishu01","dekkesa01","hernaju01","kemptti01","milleol01","murrala01","murratr01","nestera01","pincked01","roberal01","simmoko01","willico02","willier01","wilsodj01","ajincal01","delfica01","fordtj01","kaponja01","linje01","achiupr01","alstora01","bembrde01","birchkh01","blounco01","brissos01","daviste02","fernabr01","holliro01","jonespo01","lenarvo01","lohaubr01","mcdanja01","quickim01","watanyu01","willimi02","williwa02","workmha01","banksma01","duprero01","kleizli01","thompja02","weemsso01","bantoda01","barnesc01","champju01","ellenhe01","flynnma01","mamuksa01","mccawpa01","mccoyje01","mckinal01","mitchda01","willial02","acyqu01","dorsejo01","grayaa01","hansbty01"],"PHI":["lowryky01","horfoal01","iguodan01","tuckepj01","batumni01","gordoer01","howardw01","jordade01","hardeja01","holidjr01","willilo02","youngth01","georgpa01","malonmo01","mcgeeja01","millspa01","mohamna01","stackje01","butleji01","greenda02","harrito02","hillge01","ilyaser01","redicjj01","vucevni01","brandel01","korveky01","millean02","burksal01","drumman01","jacksre01","mahorri01","smithis01","ratlith01","smithjo02","cummite01","curryse01","morrima03","mutomdi01","tollian01","battito01","parkean01","beverpa01","chambto01","curetea01","grantje01","holidju01","jonesca01","monrogr01","barnema02","dalemsa01","daniean01","hughela01","johnsam01","richaja01","skinnbr01","wilkida02","barklch01","cagemi01","covinro01","ervinju01","mccontj01","muscami01","oubreke01","payneca01","belinma01","breweco01","chandwi01","evansre01","salmojo01","barnedi01","barroda01","benjabe01","bryanma01","cartemi01","cheekma01","colemde01","dedmode01","embiijo01","greenri01","greerha01","hieldbu01","holmeri01","jonesch01","marshdo01","masseto01","mckeyde01","okafoja01","richajo01","saricda01","schaydo01","shawbr01","thompla01","webbech01","willisc01","wingada01","bellra01","brownkw01","greenwi01","mbahalu01","smithja02","youngni01","bradlto01","burketr01","chambwi01","costela01","dawkida01","dunlemi01","ellisle01","gminsmi01","grabojo01","greenjo01","hillty01","hornaje01","iversal01","jacksji01","marjabo01","mcadobo01","mixst01","niangge01","noelne01","reidro01","scottmi01","threase01","woodch01","yabusgu01","bayleje01","rodrise01","wrighdo01","bambamo01","bowenbr01","bridgbi01","dierkco01","ennisja01","fraziti01","freewo01","fultzma01","gilliar01","harremo01","hawkihe01","hendege01","highsha01","houseda01","jacksja01","johnsty01","kukocto01","malonje01","maxweve01","mckieaa01","meltode01","netora01","nunnaja01","ollieke01","robincl01","seymopa01","shamela01","simmobe01","snower01","stausni01","thomati01","walkech01","weathcl01","woolror01","amundlo01","hawessp01","iveyro01","meeksjo01","randosh01","speigma01","turneev01","anderju01","awtrede01","bradlsh01","caulewi01","countme01","currymi01","gambeda01","harrilu01","hendeal01","howelba01","imhofda01","jonesbo01","joneswa02","kerrre01","korkmfu01","langan01","lynchge01","martica02","miltosh01","myerspe01","overtdo01","pincked01","robingl02","rogerro01","rulanje01","sampsja02","thybuma01","vanarto01","walkelo01","weissbo01","willico02","wilsodj01","davisjo02","elsonfr01","kaponja01","landrca01","pargoje01","askewvi01","austiis01","barneji02","blounco01","brissos01","brownmi01","catchha01","coltest01","cunnibi01","eliema01","grantha01","harprma01","joeis01","kingal01","loughke01","luwawti01","maxeyty01","mcdanja01","mcginge01","millean01","reedpa01","robingl01","shackch01","thomake01","thornbo01","washiji01","booketr01","hendege02","macksh01","nocioan01","oquinky01","songada01","weemsso01","anderro01","bassech01","bazleda01","biancal01","blockjo01","bolma01","boothca01","bristal01","brooksc01","brownch02","buckngr01","chapple01","clarkar01","geigema01","grayeje01","grimequ01","guokama02","hollili01","johnscl01","johnsol01","jonesla01","jonesma05","leecl01","lloydea01","martike04","matthwe01","mccluma01","melchbi01","okekech01","owensbi01","randlch01","rochare01","ruffimi01","schluda01","selvyfr01","simmoco01","simpsra01","skilesc01","watfotr01","weslewa01"],"ORL":["cartevi01","greenje02","arizatr01","howardw01","hillgr01","howarju01","onealsh01","lopezro01","biyombi01","harrito02","ilyaser01","redicjj01","vucevni01","millemi01","augusdj01","ibakase01","josepco01","smithis01","harrial01","lewisra02","pachuza01","wallabe01","caldwke01","rollitr01","schayda01","battito01","mcgratr01","parkean01","turkohe01","ewingpa01","fournev01","gordoaa01","grantho01","harriga01","inglejo01","stricro02","wilkido01","barnema02","boykiea01","fryech01","goodedr01","hughela01","maggeco01","nelsoja01","richaja01","aminual01","harpede01","jonesty01","paytoel01","porteot01","rosste01","doolike01","richaqu01","stevede01","udrihbe01","willija02","augmost01","cartemi01","chrisdo01","dedmode01","hardaan01","harklma01","kerrst01","mooreet01","oladivi01","outlabo01","shawbr01","anderry01","bassbr01","gortama01","greenwi01","leeco01","pricero01","ridnolu01","smithja02","armstda01","isaacjo01","kempsh01","wilkige01","afflaar01","arenagi01","boganke01","evansma01","gordobe01","mcrobjo01","anderni01","bambamo01","carteje01","cartewe01","corzida01","edwarke01","ennisja01","fraziti01","fultzma01","jacksja01","johnsan02","maxweve01","ollieke01","theusre01","wagnemo01","webbsp01","allenma01","arroyca01","maxieja01","meeksjo01","milicda01","pietrmi01","speigma01","watsocj01","bitadgo01","brownde01","buechju01","foylead01","kemptti01","kitegr01","overtdo01","pricema01","rooksse01","spencfe01","turneje01","vaughja01","wolfjo01","cookbr01","duhonch01","jennibr01","alstora01","anthoco01","armstbj01","atkinch01","austiis01","banede01","birchkh01","bolbo01","gatlich01","harprma01","hudsotr01","koncajo01","krystla01","luety01","moblecu01","oldhaja01","perryel01","reynoje01","seikaro01","whitnch01","davisgl01","jonesso01","macksh01","oquinky01","alexaco01","benoida01","bowiean01","catoke01","declean01","doleami01","garripa01","greensi02","iwundwe01","mccluma01","okekech01","randlch01","schofad01","scottde01","skilesc01","smithke01","stronde01","suggsja01","wagnefr01","liggide01"],"DAL":["cartevi01","nowitdi01","jordade01","willike02","chandty01","howarju01","kiddja01","terryja01","johnsja01","mcgeeja01","rondora01","fishede01","nashst01","stackje01","thomaku01","matthwe02","redicjj01","thompkl01","brandel01","jefferi01","barneha02","davisan02","irvinky01","middlkh01","morrima02","dampier01","jamisan01","mariosh01","pachuza01","collida01","crowdja01","curryse01","ellinwa01","hardati02","thomais02","willihe01","harride01","ellisda01","holidju01","mcderdo01","perkisa01","poweldw01","walkeke02","westma01","bareajo01","bogutan01","butleca01","caldejo01","dalemsa01","feltora01","goodedr01","greenge01","haywobr01","jonesda02","nelsoja01","odomla01","stoudam01","aminual01","bullore01","dinwisp01","exumda01","greenac01","harpede01","johnsav01","jonesty01","knighbr03","newmajo01","porzikr01","russeda01","schrede01","breweco01","humphkr01","jamesmi01","kamanch01","mahinia01","stevede01","stojape01","bryanma01","cassesa01","chrisdo01","dantlad01","davisbr01","donalja01","englial01","finlemi01","finnedo01","holmeri01","jonesde02","mannida01","richajo01","wennibi01","willisc01","wrighde01","bassbr01","bellra01","cardibr01","curryed01","diopde01","ellismo01","leeco01","leeda02","magloja01","murphtr01","najered01","willide01","armstda01","burketr01","coopewa01","hardati01","hopsosc01","jacksji01","jonesed02","klebima01","marjabo01","martida01","noelne01","roberfr01","rodmade01","woodch01","mcrobjo01","novakst01","villach01","wrighbr03","aguirma01","baglema01","bertada01","blackro01","brownch01","brunsja01","doncilu01","johnsan02","laettch01","maxweve01","mccloge01","ollieke01","packro01","thomati01","vanexni01","williho01","allenma01","bellch01","carroma01","daniema01","holliry01","howarjo01","pavloal01","anderju01","bradlsh01","caulewi01","croshau01","cummipa01","davishu01","daviste01","eisleho01","gaffoda01","harrilu01","hendeal01","jacksju01","leverfa01","martica02","milleol01","ntilila01","rooksse01","smithde03","walkean02","washipj01","willigr01","ajincal01","morroan01","parsoch01","poweljo01","willish03","brownmo01","brownst02","campbto01","cebalce01","chrisma01","dorsety01","dreilgr01","gatlich01","georgde01","greenjo02","jonesda01","jonespo01","legleti01","luety01","marshna01","mashbja01","tylerte01","vaughlo01","whiteje01","williwa02","evansje01","kiddgmi01","mayooj01","westde01","besttr01","boothca01","bristal01","brooksc01","brownch02","buckngr01","carrau01","cookqu01","delkto01","ferreyo01","fortsda01","grimequ01","iwundwe01","lafrera01","mccraro01","pinsoth01","robinje02","scottde01","walkesa01","willibr03","acyqu01","blairde01","douglch01","harrima01","jenkijo01","liggide01","mbengdj01"],"SAC":["cartevi01","arizatr01","westbru01","derozde01","gayru01","templga01","johnsja01","mcgeeja01","rondora01","artesro01","cousybo01","hillge01","millean02","randoza01","barneha02","burksal01","josepco01","thomptr01","valanjo01","collida01","crowdja01","curryse01","johnsed03","schrode01","thomais02","tollian01","turkohe01","couside01","holidju01","lavinza01","lenal01","mcderdo01","polynol01","thorpot01","whiteha01","barnema02","bibbymi01","butleca01","dalemsa01","goodedr01","jonesda02","millebr01","mooremi01","skinnbr01","wallage01","carran01","corbity01","divacvl01","pattepa01","belinma01","breweco01","evansre01","salmojo01","stojape01","udrihbe01","willija02","bazemke01","chrisdo01","dedmode01","dellama01","harklma01","hieldbu01","holmeri01","kleinjo01","labissk01","lambje01","lylestr01","masseto01","sabondo01","saricda01","shumpim01","thompla01","webbech01","wennibi01","wrighde01","martike02","mbahalu01","pricero01","aingeda01","architi01","barryjo01","bogdabo01","delnevi01","foxde01","greenjo01","hayesni01","jacksji01","martida01","mclembe01","monkma01","rambiku01","richmmi01","roberos01","afflaar01","brookaa01","evansma01","farmajo01","hayesch01","houseed01","koufoko01","outlatr01","rodrise01","sessira01","anderni01","baglema01","boonero01","brownch01","busedo01","dierkco01","divindo01","doziepj01","eubandr01","fultzma01","gallola01","higgiro01","huertke01","johnsan02","jonesda03","laceysa01","maxweve01","ollieke01","parkeja01","peelean01","robincl01","robisda01","stausni01","theusre01","webbsp01","wedmasc01","wrighlo02","brownbo02","casspom01","evansty01","garcifr01","hawessp01","holliry01","abdursh01","birdsot01","bjeline01","brownra02","cabocbr01","caulewi01","ellispe01","gambeda01","grantbr01","huntede01","imhofda01","jacksbo01","jacksju01","kitegr01","kojisdo01","mclaujo01","milleol01","mudiaem01","olberma01","pincked01","robingl02","rodgegu01","sampsja02","sparrro01","tisdawa01","vanarto01","whitejo01","willico02","landrca01","abdulma02","achiupr01","adamsmi01","askewvi01","boozebo01","breuera01","causwdu01","coltest01","daviste02","drewla01","embrywa01","gilesha01","hairsha01","hayeski01","jamesje01","jeffrda01","jonesda01","kelleri01","knighbi01","lewisfr02","lohaubr01","lovebo01","lovelcl01","lucasje01","mcglojo01","metuch01","moblecu01","nealyed01","oldhaja01","ostergr01","pollasc01","potapvi01","smithad01","thomake01","twymaja01","tylerte01","williwa02","woodsmi01","aldrico01","armsthi01","douglto01","fredeji01","hicksjj01","lawsoty01","nocioan01","songada01","thompja02","thornma01","udokaim01","abdulza01","allenlu01","blockjo01","boothca01","burtode02","chapple01","delkto01","eakinji01","elmorle01","ferreyo01","foxji01","gabriwe01","gamblke01","grayeje01","greensi01","guokama02","halibty01","hartja01","hawkito01","jacksjo02","johnsol01","johnsst03","jonesma05","kingji01","komivho01","masonde01","mccraro01","mengejo01","meriwjo01","mitchda01","owensbi01","pricebr01","quetane01","risenar01","simmoco01","smithke01","taylobr01","tayloma01","toscaju01","vanlino01","wellsbo01","weslewa01","willira01","acyqu01","dioguik01","dorsejo01","grayaa01"],"DEN":["anthoca01","greenje02","iguodan01","jordade01","westbru01","willike02","howarju01","gallida01","mcgeeja01","millspa01","billuch01","cambyma01","hilarne01","jefferi01","millean02","millemi01","augusdj01","jacksre01","smithis01","valanjo01","anderch01","harrial01","mcdyean01","smithjo02","smithjr01","caldwke01","hardati02","mutomdi01","plumlma01","schayda01","thomais02","battito01","harride01","martike01","couside01","ellisda01","fournev01","gordoaa01","grantje01","harriga01","holidju01","jacksma01","nurkiju01","boykiea01","feltora01","jonesda02","nelsoja01","bartowi01","johnsav01","jokicni01","jonesty01","newmajo01","piercri01","riverau01","silaspa01","blakest01","breweco01","cartean01","chandwi01","evansre01","watsoea01","bryanma01","daviswa03","englial01","isselda01","lylestr01","murraja01","saricda01","thompla01","williaa01","willisc01","elyme01","najered01","poseyja01","youngni01","barryjo01","beaslma01","bryanth01","coopewa01","dunntr01","greenja01","hardati01","haywosp01","iversal01","masonan01","mixst01","morrimo01","vonleno01","afflaar01","brookaa01","carrode01","foyera01","koufoko01","robinna01","brownbr01","cheanca01","craigto01","doziepj01","ennisja01","harteis01","johnser02","levincl01","mccloge01","packro01","robisda01","roseja01","russebr01","vandeja01","vandeki01","vanexni01","woolror01","allenma01","arroyca01","arthuda01","calvima01","daviste01","eisleho01","forbebr01","greenda01","hammoto01","harrish01","hernaju01","jacksbo01","johnsca02","jonesbo01","kemptti01","leverfa01","mcinnje01","mudiaem01","murratr01","overtdo01","portemi01","rogerro01","sampsja02","webstma01","willier01","wolfjo01","elsonfr01","hibbero01","abdulma02","adamsmi01","andergr01","askewvi01","atkinch01","bateske01","bolbo01","bowenry01","cancavl01","carrojo01","crottjo01","ellisla01","gatlich01","goldwan01","hastisc01","jonespo01","kelleri01","legleti01","lenarvo01","mcginge01","millste01","nattca01","nnajize01","oldhaja01","persowe01","reedda01","rochejo01","toupaax01","whitnch01","farieke01","geeal01","hicksjj01","kleizli01","lawsoty01","mozgoti01","petrojo01","weemsso01","alexaco01","barnhjo01","beckby01","buckngr01","doleami01","fortsda01","hanzlbi01","hartja01","hightwa01","huffja01","hylanbo01","jonesla01","lafrera01","mccoyje01","patteru01","scottch01","simpsra01","smithke01","stithbr01","taylobr01","walkeda01","willire01","danietr01"],"NYK":["anthoca01","tuckepj01","arizatr01","jordade01","crawfja01","chandty01","kiddja01","gallida01","gibsota01","lopezro01","rosede01","artesro01","mohamna01","thomaku01","wallara01","matthwe02","billuch01","cambyma01","randoza01","burksal01","oaklech01","harrial01","mcdyean01","smithjr01","cummite01","ellinwa01","hardati02","morrima03","mutomdi01","willihe01","martike01","mcgratr01","clarkjo01","ewingpa01","fournev01","holidju01","jacksma01","mcderdo01","randlju01","stricro02","walkeke02","willibu01","barnema02","bibbymi01","caldejo01","dalemsa01","feltora01","fryech01","hughela01","stoudam01","antetth01","bullore01","cartwbi01","dudlech02","harpede01","kanteen01","kingbe01","newmajo01","payneca01","paytoel01","portibo01","porzikr01","riverau01","townska01","cartean01","chandwi01","davisba01","jackja01","noahjo01","richaqu01","udrihbe01","vujacsa01","barnedi01","bogdabo02","braunca01","cheekma01","chrisdo01","donalja01","hardaan01","harklma01","ricegl01","shumpim01","wingada01","wrighde01","curryed01","leeco01","leeda02","masonro01","smithja02","anunoog01","bellawa01","burketr01","greenjo01","gueriri01","hartjo01","haywosp01","kornelu01","lucasma01","masonan01","mcadobo01","noelne01","starkjo01","vonleno01","wilkige01","yabusgu01","afflaar01","beaslmi01","houseed01","jeffrja01","novakst01","robinna01","rodrise01","sessira01","wilcoch01","bakervi01","blackro01","bridgmi01","brunsja01","davisan01","divindo01","fraziwa01","gallola01","grantga01","harteis01","hendege01","houseda01","jacksph01","marbust01","mcdanxa01","monroea01","mykhasv01","riverdo01","robinmi01","roseja01","rosema01","shamela01","sprewla01","thomati01","vandeki01","weathcl01","amundlo01","bargnan01","barroea01","gadzuda01","milicda01","turiaro01","arcidry01","barrerj01","conlege01","cummipa01","davishu01","debusda01","eisleho01","harriot01","hernawi01","houstal01","imhofda01","kitegr01","knoxke01","langan01","miltosh01","mudiaem01","myerspe01","ntilila01","reidjr01","robinla01","russeca01","smithde03","smithra01","sparrro01","spencfe01","vanardi01","webstma01","westppa01","brownsh01","duhonch01","jennibr01","linje01","thomala01","willish03","achiupr01","anthogr01","barneji02","bendejo01","boozebo01","campbto01","clemeba01","eganjo01","golato01","hastisc01","jamesje01","jeffrda01","lohaubr01","lucasje01","martisl01","mcguidi01","mcmilto01","newlimi01","oldhaja01","quickim01","reddica01","robintr01","russeca02","seldewa01","thornbo01","toppiob01","tucketr01","wardch01","woodsmi01","aldrico01","brewero02","douglto01","fredeji01","hilljo01","jonesso01","mozgoti01","oquinky01","udokaim01","alvarjo01","andersh01","beardbu01","bowiean01","bradlbi01","brooksc01","brownch02","catoke01","chapple01","doleami01","dotsoda01","ellenhe01","elmorle01","flynnma01","gallaha01","glennmi01","greensi02","grimequ01","johnsla02","komivho01","longllu01","mcbrimi01","mccarwa01","meriwjo01","millsch01","naullwi01","norrimo01","pinsoth01","randlch01","reedwi01","scottde01","selvyfr01","sheltlo01","shuege01","simmoco01","simsje01","stallda01","tayloma01","walkeda01","willira01","zasloma01","acyqu01","jenkijo01"],"POR":["anthoca01","arizatr01","batumni01","crawfja01","holidjr01","howarju01","aldrila01","lopezro01","millspa02","onealje01","thomaku01","wallara01","matthwe02","cambyma01","millean02","randoza01","edwarja01","ratlith01","curryse01","lillada01","mccolcj01","plumlma01","robincl02","tollian01","davised01","grantje01","jonesca01","kerseje01","listeal01","nurkiju01","pippesc01","portete01","stricro02","thorpot01","whiteha01","willibu01","daniean01","feltora01","fryech01","jonesja02","skinnbr01","wallage01","aminual01","bartowi01","connapa01","covinro01","davisda01","dudlech02","kanteen01","leoname01","nancela02","powelno01","schrede01","zelleco01","blakest01","jackja01","kamanch01","marksse01","przybjo01","watsoea01","willima01","augmost01","bazemke01","bryanma01","daviswa03","drexlcl01","dunnkr01","harklma01","jonesde02","kerrst01","kleinjo01","labissk01","paytoga02","shawbr01","washike01","wilkele01","magloja01","pricero01","aingeda01","anderke01","brogdma01","colliza01","coopewa01","dunntr01","ellisle01","hartjo01","jacksji01","kempsh01","lucasma01","mclembe01","reidro01","smithst01","snellto01","vonleno01","whatlen01","afflaar01","bayleje01","jeffrja01","mcrobjo01","outlatr01","rodrise01","telfase01","wrighdo01","aytonde01","busedo01","eubandr01","fraziti01","grantga01","hoodro01","jacksja01","mckieaa01","packro01","perduwi01","simonan01","stausni01","stoudda01","thompmy01","trentga02","vandeki01","vanexni01","waltobi01","williro04","winslju01","barroea01","carroma01","collija03","cunnida01","pavloal01","randosh01","turneev01","webstma02","abdursh01","arcidry01","awtrede01","grantbr01","harrish01","imhofda01","johnsjo01","knoxke01","leverfa01","mcinnje01","murratr01","owensto01","smithde03","thybuma01","wolfjo01","anderde01","anthogr01","askewvi01","avdijde01","barneji02","bowiesa01","brownmo01","butlemi02","clemeba01","coltest01","crottjo01","dischte01","duckwke01","eliema01","galemi01","gilesha01","grantha01","holliro01","laymaja01","lenarvo01","nattca01","paxsoji02","persowe01","reddica01","williwa02","youngda01","babbilu01","geeal01","hendege02","hicksjj01","udokaim01","bantoda01","carrke01","catoke01","davisjo01","gabriwe01","gamblke01","harvean01","hawesst01","hollili01","johnscl01","johnsol01","johnsst03","krejcvi01","lafrera01","littlna01","patteru01","ruffimi01","schluda01","sichtje01","valenda01","watfotr01","wellsbo01","wickssi01","willial02","willibr03","crabbal01","dioguik01","pendeje02"],"MIN":["conlemi01","garneke01","loveke01","crawfja01","youngth01","gibsota01","johnsja01","rosede01","butleji01","billuch01","millean02","millemi01","ratlith01","smithjo02","ellinwa01","goberru01","tollian01","denglu01","anderky01","beverpa01","davised01","inglejo01","lavinza01","monrogr01","portete01","randlju01","rubiori01","stephla01","stricro02","teaguje01","wiggian01","bareajo01","greenge01","jeffeal01","kirilan01","millebr01","princta01","wilkida02","baileth01","corbity01","covinro01","jonesty01","riverau01","russeda01","townska01","breweco01","cartean01","collija04","jamesmi01","willima01","cassesa01","dienggo01","dunnkr01","gillke01","marshdo01","princta02","saricda01","warretj01","cardibr01","lucasjo02","martike02","mbahalu01","ridnolu01","beaslma01","martida01","morrimo01","persoch01","vonleno01","bayleje01","beaslmi01","brookaa01","evansma01","foyera01","koufoko01","sessira01","telfase01","divindo01","doziepj01","fostegr01","guglito01","johnser02","laettch01","marbust01","mitchsa01","nunnaja01","okogijo01","ollieke01","packro01","peelean01","sprewla01","vandeja01","webbsp01","amundlo01","brownbo02","casspom01","cunnida01","holliry01","howarjo01","milicda01","pavloal01","turiaro01","webstma02","alexani01","bjeline01","davisri01","eisleho01","forbebr01","hammoto01","hernaju01","jacksbo01","jacksju01","langan01","mclaujo01","milleol01","miltosh01","nestera01","reidna01","robingl02","rooksse01","spencfe01","walkean02","westdo01","gomesry01","johnswe01","rushbr01","bateske01","brandte01","breuera01","brownmi01","browntr01","campbto01","edwaran01","ellisla01","goldwan01","hudsotr01","laymaja01","lohaubr01","mcdanja02","nowelja01","shackch01","thornbo01","willimi02","aldrico01","banksma01","duprero01","hilljo01","belljo01","boothca01","brooksc01","buckngr01","doleami01","dosunay01","garzalu01","hartja01","hoibefr01","hylanbo01","johnsst03","longllu01","richapo01","scottde01","szczewa02","budinch01","conrowi01","crabbal01","danietr01","gelabmi01","nealga01"],"WAS":["greenje02","arizatr01","howardw01","westbru01","milescj01","templga01","howarju01","piercpa01","gallida01","gibsota01","lopezro01","malonmo01","mcgeeja01","stackje01","wallara01","hilarne01","millean02","millemi01","bealbr01","dudleja01","jordami01","mahorri01","middlkh01","morrima02","oaklech01","smithis01","valanjo01","harrial01","jamisan01","lewisra02","wallabe01","caldwke01","mccolcj01","thomais02","walljo01","livinsh01","lenal01","monrogr01","smartma01","stricro02","thorpot01","bibbymi01","boykiea01","butleca01","butlera01","daniean01","goodedr01","hamilri01","haywobr01","hughela01","okafoem01","bartowi01","dinwisp01","hayesel01","jonesty01","kingbe01","muscami01","oubreke01","porteot01","portibo01","porzikr01","riverau01","blakest01","collija04","hinriki01","humphkr01","jamesmi01","mahinia01","pargoja01","stevede01","bogdabo02","holmeri01","jonesch01","labissk01","paytoga02","webbech01","williaa01","wingada01","wrighde01","anderal01","brownkw01","cardibr01","gortama01","masonro01","smithja02","youngni01","bellawa01","boguemu01","brogdma01","bryanth01","burketr01","ellisle01","grabojo01","greenjo01","haywosp01","kuzmaky01","lucasjo01","morrimo01","nelsodo01","richmmi01","scottmi01","whatlen01","arenagi01","evansma01","foyera01","jeffrja01","sessira01","simmobo01","baglema01","bertada01","cheanca01","corzida01","dandrbo01","fostegr01","fraziti01","guglito01","harremo01","holidaa01","houseda01","jacksja01","johnsfr01","laettch01","malonje01","monroea01","netora01","packro01","parkeja01","peelean01","robincl01","russebr01","shamela01","unselwe01","wagnemo01","youngtr01","barroea01","bynumwi01","holliry01","howarjo01","meeksjo01","thomaet01","turiaro01","webstma02","ballagr01","bingda01","chapmre01","countme01","currymi01","davishu01","daviste01","dekkesa01","ellispe01","gaffoda01","hachiru01","hammoto01","howelba01","joneswa02","kerrre01","knighbr01","kojisdo01","mathega01","mcinnje01","murratr01","overtdo01","poolejo01","pricema01","robinla01","roundda01","rulanje01","weissbo01","willigu01","blatcan01","cookbr01","jennibr01","johnswe01","adamsmi01","atkinch01","austiis01","avdijde01","browntr01","butlemi02","coltest01","diallha01","dischte01","duckwke01","eganjo01","gillan01","goldwan01","grantha01","jonespo01","kingal01","legleti01","loughke01","luety01","marinja01","mcdanja01","mcmilto01","porteke01","robinje01","robintr01","satorto01","scottra01","sloanje01","soberri01","thornbo01","vaughlo01","whitnch01","workmha01","armsthi01","booketr01","crawfjo02","geeal01","hicksjj01","macksh01","songada01","thornma01","anderro01","barnhjo01","belljo01","bolma01","boothca01","bradldu01","carrau01","champju01","cheniph01","choneji01","clarkar01","coopesh01","eacklle01","ferrybo01","goodwjo01","greensi01","greveke01","hightwa01","huffja01","johnsal02","johnsgu01","jonesji01","kispeco01","kupchmi01","matthwe01","ohldo01","pricebr01","randlch01","ruffimi01","schofad01","shuege01","skilesc01","stallda01","stronde01","walkeda01","walkesa01","weslewa01","blairde01","harrimi01","jenkijo01","martica01","nealga01"],"MIL":["tuckepj01","lopezbr01","holidjr01","templga01","terryja01","gallida01","lopezro01","malonmo01","allenra02","gasolpa01","stackje01","thomaku01","abdulka01","dragigo01","harrito02","hillge01","ilyaser01","matthwe02","redicjj01","jefferi01","korveky01","augusdj01","dudleja01","ibakase01","middlkh01","smithis01","pachuza01","smithjo02","antetgi01","crowdja01","cummite01","lillada01","schayda01","dunlemi02","livinsh01","martike01","willima02","beverpa01","bledser01","couside01","ellisda01","harriga01","hunteli01","inglejo01","kerseje01","listeal01","monrogr01","paytoga01","teaguje01","westma01","bogutan01","boykiea01","butleca01","dalemsa01","goodedr01","jacksst02","maggeco01","skinnbr01","antetth01","connapa01","curryde01","knighbr03","leoname01","newmajo01","payneca01","piercri01","portibo01","turnemy01","blakest01","doolike01","jamesmi01","przybjo01","salmojo01","udrihbe01","willima01","benjabe01","cartemi01","cassesa01","dantlad01","dellama01","englial01","gillke01","greenri01","mannida01","paytoga02","princta02","williaa01","willisc01","wrighde01","ellismo01","magloja01","mbahalu01","reddmi01","ridnolu01","smithja02","architi01","barryjo01","beaslma01","brogdma01","delnevi01","dunlemi01","gminsmi01","hillty01","kornelu01","kuzmaky01","laniebo01","lucasjo01","masonan01","mixst01","roberfr01","roberos01","sikmaja01","snellto01","woodch01","bayleje01","beaslmi01","boganke01","houseed01","novakst01","sessira01","simmobo01","villach01","allengr01","bakervi01","brickfr01","brownch01","carteje01","connele01","cowenda01","craigto01","dandrbo01","divindo01","fostegr01","fraziti01","gallola01","gilliar01","hendege01","hoodro01","johnser02","johnsma01","kukocto01","ollieke01","parkeja01","thomati01","trentga02","woolror01","allenma01","barroea01","bellch01","daniema01","gadzuda01","hawessp01","iveyro01","meeksjo01","bridgju01","coffeam01","croshau01","cummipa01","currymi01","douglsh01","forbebr01","gambeda01","jacksju01","johnsmi01","joneswa02","knighbr01","langan01","mokespa01","moncrsi01","pincked01","porteke02","reidjr01","roberal01","rodgegu01","webstma01","weissbo01","wilsodj01","wolfjo01","davisjo02","delfica01","elsonfr01","fordtj01","jennibr01","udohek01","alstora01","andergr01","anthoco01","anthogr01","bembrde01","bensoke01","boozebo01","brandte01","breuera01","brownst02","catchha01","duckwke01","embrywa01","gatlich01","goldwan01","humphja01","jonesda01","krystla01","lohaubr01","lovebo01","luety01","mcglojo01","merrisa01","natersw01","perryel01","presspa01","reynoje01","robingl01","smithto02","toupaax01","workmha01","youngda01","hensojo01","leuerjo01","mayooj01","warriha01","zellety01","abdulza01","allenlu01","blockjo01","boldema01","boothca01","bradldu01","bucknqu01","chapple01","eakinji01","edwarbl01","elmorle01","foxji01","glennmi01","grayeje01","greveke01","hartja01","hodgecr01","makerth01","mamuksa01","masonde01","morrija01","normake01","ojelese01","patteru01","ruffimi01","sichtje01","simsje01","skilesc01","stronde01","thomaca02","vanlino01","weslewa01","douglch01","joneste01","liggide01","nealga01"],"CHA":["batumni01","howardw01","templga01","chandty01","howarju01","gibsota01","parisro01","mohamna01","parketo01","biyombi01","augusdj01","dudleja01","haywago01","smithis01","ratlith01","curryse01","johnsed03","plumlma01","thomais02","tollian01","livinsh01","willima02","chambto01","curetea01","ellisda01","nurkiju01","stephla01","thorpot01","walkeke02","boykiea01","diawbo01","feltora01","haywobr01","hughela01","jacksst02","jeffeal01","maggeco01","millebr01","okafoem01","richaja01","wallage01","connapa01","curryde01","divacvl01","mournal01","newmajo01","oubreke01","paytoel01","piercri01","zelleco01","belinma01","davisba01","pargoja01","przybjo01","willima01","augmost01","brownpj01","campbel01","cartemi01","colemde01","gillke01","greenri01","lambje01","masseto01","ricegl01","roziete01","wingada01","anderal01","bellra01","brownkw01","diopde01","elyme01","leeco01","magloja01","najered01","radmavl01","ridnolu01","anderke01","boguemu01","gminsmi01","jonesed02","masonan01","monkma01","persoch01","rambiku01","reidro01","smithst01","vonleno01","wesleda01","woodch01","boganke01","gordobe01","houseed01","mcrobjo01","sessira01","bertada01","brickfr01","bridgmi02","brownch01","gilliar01","harremo01","hawkihe01","kaminfr01","maxweve01","mykhasv01","okogijo01","rosema01","sextoco01","allenma01","carroma01","cunnida01","hawessp01","holliry01","maxieja01","bullama01","chapmre01","davisri01","hammoto01","harriot01","hernawi01","kemptti01","kitegr01","knighbr01","lynchge01","martica02","martico01","mcinnje01","myerspe01","ntilila01","overtdo01","reidjr01","simmoko01","smithde03","washipj01","whiteco01","willier01","willigr01","wolfjo01","ajincal01","brownsh01","hibbero01","kaponja01","linje01","thomaty01","adamsmi01","addisra01","anderde01","armstbj01","ballla01","goldwan01","grahade01","greenjo02","jeffrda01","mashbja01","mcdanja01","perryel01","richani01","shackch01","smithto02","tillmxa01","willimi02","hendege02","kiddgmi01","macksh01","warriha01","willire02","alexaco01","boldema01","delkto01","flynnma01","gattike01","geigema01","grayeje01","greensi02","hartja01","johnsla02","manntr01","sichtje01","tripuke01","danietr01","douglch01","hansbty01","martica01","nealga01"],"CHI":["crawfja01","derozde01","templga01","youngth01","chandty01","gibsota01","johnsja01","lopezro01","parisro01","rondora01","rosede01","artesro01","gasolpa01","mohamna01","thomaku01","butleji01","dragigo01","vucevni01","brandel01","korveky01","augusdj01","drumman01","edwarja01","jordami01","oaklech01","thomptr01","smithjo02","wadedw01","wallabe01","denglu01","dunlemi02","beverpa01","curetea01","gilmoar01","grantho01","holidju01","hunteli01","jonesca01","lavinza01","mcderdo01","pippesc01","butlera01","goodedr01","hamilri01","hughela01","millebr01","sefolth01","aminual01","cartwbi01","payneca01","porteot01","portibo01","belinma01","boozeca01","hinriki01","jamesmi01","noahjo01","pargoja01","salmojo01","brownpj01","bryanma01","cartemi01","dunnkr01","gillke01","harpero01","jonesch01","jonesde02","kerrst01","kleinjo01","marshdo01","mooreet01","wennibi01","willisc01","curryed01","lucasjo02","masonro01","radmavl01","balllo01","barrybr01","bradlto01","carusal01","colliza01","gervige01","kornelu01","markkla01","piatker01","rodmade01","sallejo01","snellto01","starkjo01","threase01","thurmna01","vonleno01","whatlen01","yabusgu01","boganke01","brookaa01","gordobe01","robinna01","scalabr01","carteje01","cartewe01","corzida01","craigto01","davisan01","dietrco01","fostegr01","hawkihe01","higgiro01","huertke01","kukocto01","levincl01","ollieke01","parkeja01","perduwi01","roseja01","sextoco01","simonan01","theisda01","theusre01","thomati01","walkech01","woolror01","allenma01","amundlo01","watsocj01","arcidry01","awtrede01","brownra02","buechju01","erickke01","gaffoda01","greenda01","greenja02","harriot01","harrish01","johnsmi01","kojisdo01","langan01","myerspe01","nevitch01","olberma01","rodgegu01","russeca01","sampsja02","sparrro01","weissbo01","whiteco01","brownsh01","duhonch01","morroan01","pondequ01","thomaty01","anthogr01","armstbj01","blounco01","boozebo01","brownmi01","browntr01","clemeba01","coltest01","feliccr01","heardga01","hortota01","jonestr01","krystla01","livinra01","lovebo01","luwawti01","marinja01","nealyed01","nwabada01","okorois01","oldhaja01","paxsojo01","richani01","satorto01","seldewa01","sloanje01","smithja04","soberri01","strusma01","tucketr01","valende01","washiji01","willipa01","asikom01","brewero02","duprero01","fredeji01","nocioan01","songada01","warriha01","belljo01","besttr01","blockjo01","boerwto01","bradldu01","chapple01","dailequ01","dosunay01","foxji01","giddejo01","greensi02","guokama02","haleyja01","hodgecr01","hoibefr01","johnsal02","johnsol01","johnsst03","jonesdw01","kenonla01","kingji01","longllu01","matthwe01","mccluma01","mccraro01","mckinal01","mengejo01","poquebe01","raycl01","ruffimi01","vanlino01","walkeda01","weslewa01","grayaa01","martica01"],"IND":["milescj01","youngth01","georgpa01","johnsja01","artesro01","onealje01","hillge01","matthwe02","augusdj01","edwarja01","josepco01","longjo01","thomptr01","dampier01","harrial01","collida01","johnsed03","millere01","willihe01","dunlemi02","westda01","holidju01","jacksma01","mcderdo01","perkisa01","stephla01","teaguje01","westma01","barbole01","butlera01","greenge01","jacksst02","jeffeal01","jonesda02","jonesja02","millebr01","wilkida02","davisda01","mccontj01","mullich01","piercri01","schrede01","turnemy01","fosteje01","jackja01","mahinia01","stojape01","tinslja01","watsoea01","bogdabo02","dantlad01","davisbr01","englial01","greenri01","hieldbu01","lambje01","leverca01","mckeyde01","okafoja01","oladivi01","sabondo01","siakapa01","thompla01","warretj01","zubaciv01","ellismo01","murphtr01","poseyja01","anderke01","armstda01","bradlto01","brogdma01","bryanth01","hardati01","hillso01","morrimo01","niangge01","persoch01","scottby01","brookaa01","mcrobjo01","brownbr01","busedo01","connele01","craigto01","davisan01","holidaa01","johnsan02","mccloge01","mitchsa01","ollieke01","robisda01","roseja01","theisda01","amundlo01","daniema01","evansty01","grangda01","scolalu01","stuckro01","turneev01","watsocj01","anderju01","bitadgo01","croshau01","currymi01","flemive01","johnsmi01","kitegr01","martico01","mathega01","nestera01","owensto01","robingl02","roundda01","sampsja02","smitsri01","tisdawa01","bynuman01","fordtj01","hibbero01","poweljo01","rushbr01","willish03","askewvi01","bendejo01","brissos01","brownmo01","dreilgr01","ferredu01","knighbi01","lewisfr02","mcginge01","millste01","nattca01","nesmiaa01","oldhaja01","pollasc01","reedda01","sandemi01","smithja04","soberri01","sumneed01","toppiob01","willimi02","wisemja01","workmha01","booketr01","hilljo01","jonesso01","lawsoty01","oquinky01","anderro01","barnhjo01","besttr01","bradldu01","bucknqu01","cheniph01","danieme01","davisjo01","elmorle01","halibty01","hoibefr01","huffja01","jacksis01","johnsal02","johnscl01","johnsgu01","mccluma01","pottemi01","richapo01","robinje02","sichtje01","skilesc01","walkesa01","willire01","budinch01","dioguik01","hansbty01","pendeje02"],"DET":["hillgr01","gallida01","gibsota01","rosede01","mohamna01","stackje01","wallara01","harrito02","ilyaser01","billuch01","augusdj01","burksal01","drumman01","edwarja01","jacksre01","josepco01","longjo01","mahorri01","middlkh01","morrima02","smithis01","mcdyean01","pachuza01","ratlith01","smithjo02","wallabe01","caldwke01","ellinwa01","griffbl01","hardati02","morrima03","olynyke01","plumlma01","robincl02","rollitr01","schrode01","tollian01","mcgratr01","bradlav01","curetea01","fournev01","grantje01","hunteli01","monrogr01","polynol01","thorpot01","westma01","butleca01","caldejo01","hamilri01","johnsam01","maggeco01","mooremi01","nelsoja01","princta01","smithjo03","wilkida02","bullore01","davisda01","dinwisp01","knighbr03","muscami01","piercri01","blakest01","jamesmi01","udrihbe01","augmost01","barroda01","bogdabo02","campbel01","colemde01","dantlad01","greenri01","harrijo01","jonesch01","leverca01","longgr01","lylestr01","mannida01","okafoja01","webbech01","wrighde01","brownkw01","cardibr01","lucasjo02","barryjo01","baynear01","beaslma01","bellawa01","dawkida01","dumarjo01","iversal01","kennalu01","laimbbi01","laniebo01","marjabo01","mcadobo01","mixst01","morrimo01","noelne01","rodmade01","sallejo01","snellto01","woodch01","afflaar01","evansma01","gordobe01","villach01","wilcoch01","aguirma01","baglema01","brownbr01","ennisja01","fraziti01","gallola01","hendege01","huertke01","johnsst04","johnsvi01","laettch01","levincl01","mckieaa01","mykhasv01","robindu01","thomais01","woolror01","anthojo01","arroyca01","bynumwi01","jerebjo01","maxieja01","meeksjo01","milicda01","okurme01","stuckro01","bingda01","buechju01","currymi01","davishu01","debusda01","elliose01","foustla01","gambeda01","greenda01","greenja02","houstal01","howelba01","imhofda01","joneswa02","knoxke01","kojisdo01","mcgruro01","milleol01","miltosh01","mokespa01","nevitch01","owensto01","roberal01","robingl02","roundda01","rulanje01","smithde03","vanarto01","willico02","delfica01","jennibr01","willish03","addisra01","alexavi01","andergr01","atkinch01","bensoke01","beysa01","browntr01","caldwjo01","campbto01","cebalce01","crottjo01","diallch01","diallha01","dischte01","drewla01","eganjo01","goldwan01","hairsha01","hastisc01","hayeski01","jonesda01","loughke01","mcguidi01","metuch01","millste01","nowelja01","phillan01","pollasc01","porteke01","reedpa01","scottra01","stewais01","teaglte01","tylerte01","vaughlo01","willimi02","wisemja01","youngda01","duprero01","hensojo01","leuerjo01","barnhjo01","carrke01","carrml01","catoke01","chapple01","clarkar01","cunnica01","delkto01","ellenhe01","ferrybo01","flynnma01","fordch01","foxji01","gallaha01","garzalu01","greensi02","grimequ01","hightwa01","hollili01","hubbaph01","jacksfr01","jacksjo02","komivho01","liveris01","lloydea01","makerth01","mengejo01","morelja01","ohldo01","owensbi01","poquebe01","pottemi01","rochare01","shuege01","simpsra01","smithke01","surabo01","tripuke01","walkeda01","waltode01","waterli01","zasloma01","martica01"]};
+// Map our stat categories to ESPN leader category names
+const STAT_TO_ESPN = {
+  // NBA
+  "pts_pg":"pointsPerGame", "ast_tot":"assistsPerGame", "three_tot":"3PointMadePerGame", "ftp":"fieldGoalPercentage",
+  "trb_tot":"reboundsPerGame", "trb_pg":"reboundsPerGame",
+  "stl_tot":"stealsPerGame", "stl_pg":"stealsPerGame", "blk_tot":"blocksPerGame", "blk_pg":"blocksPerGame",
+  // NFL
+  "pass_yds":"passingYards", "pass_td":"passingTouchdowns", "rush_yds":"rushingYards", "rush_td":"rushingTouchdowns",
+  "rec_yds":"receivingYards", "rec":"receptions", "rec_ypg":"receivingYards", "rush_ypg":"rushingYards",
+  "scrim_yds":"rushingYards", "tot_td":"rushingTouchdowns", "qbr":"quarterbackRating", "pass_int":"interceptions",
+};
+
+// ESPN stat extraction mapping
+const ESPN_STAT_MAP = {
+  // NFL
+  "pass_yds": { cat: "passing", stat: "passingYards" },
+  "pass_td": { cat: "passing", stat: "passingTouchdowns" },
+  "rush_yds": { cat: "rushing", stat: "rushingYards" },
+  "rush_td": { cat: "rushing", stat: "rushingTouchdowns" },
+  "rec_yds": { cat: "receiving", stat: "receivingYards" },
+  "rec": { cat: "receiving", stat: "receptions" },
+  "rec_ypg": { cat: "receiving", stat: "receivingYardsPerGame" },
+  "rush_ypg": { cat: "rushing", stat: "rushingYardsPerGame" },
+  "scrim_yds": { cat: "rushing", stat: "totalYardsFromScrimmage" },
+  "tot_td": { cat: "rushing", stat: "totalTouchdowns" },
+  "qbr": { cat: "passing", stat: "passerRating" },
+  "pass_int": { cat: "defensiveInterceptions", stat: "interceptions" },
+  // NBA
+  "pts_pg": { cat: "offensive", stat: "avgPoints" },
+  "ast_tot": { cat: "offensive", stat: "assists" },
+  "three_tot": { cat: "offensive", stat: "threePointFieldGoalsMade" },
+  "ftp": { cat: "offensive", stat: "freeThrowPct" },
+  "trb_tot": { cat: "general", stat: "totalRebounds" },
+  "trb_pg": { cat: "general", stat: "avgRebounds" },
+  "stl_tot": { cat: "defensive", stat: "steals" },
+  "stl_pg": { cat: "defensive", stat: "avgSteals" },
+  "blk_tot": { cat: "defensive", stat: "blocks" },
+  "blk_pg": { cat: "defensive", stat: "avgBlocks" },
+};
 
 // ====== STATE ======
 let league = "NFL";
-let playerDb = { NFL: null, NBA: null };
 let game = null;
 let activeRow = null;
 let selectedPlayerIdx = -1; // index into current search results
-let searchResults = [];      // current filtered player list
+let searchResults = [];      // current filtered player list (ESPN results)
 let submitting = false;
 let guesses = 0;
 let expandedRow = -1;
-let statsCache = {};         // keyed by "league:stat:playerId"
+let selectedPlayerData = null; // { espnId, name, imageUrl, seasonLog }
 
-// ====== LOAD PLAYERS ======
-async function loadPlayers(lg) {
-  if (playerDb[lg]) return playerDb[lg];
-  try {
-    const r = await fetch(`https://www.statpadgame.com/player_data_${lg.toLowerCase()}.csv`);
-    const t = await r.text();
-    const lines = t.trim().split("\n");
-    const out = [];
-    for (let i = 1; i < lines.length; i++) {
-      const c = lines[i].split(",");
-      if (c.length >= 5 && c[0])
-        out.push({ id:c[0], fn:c[1], ln:c[2], s:+c[3], e:+c[4] });
+// Simple ESPN API cache
+const espnCache = {};
+
+// Reverse ESPN team ID maps (built lazily)
+let reverseNflIds = null;
+let reverseNbaIds = null;
+
+function espnTeamIdToAbbr(teamId, lg) {
+  if (lg === "NFL") {
+    if (!reverseNflIds) {
+      reverseNflIds = {};
+      for (const [abbr, id] of Object.entries(ESPN_NFL_IDS)) reverseNflIds[id] = abbr;
     }
-    playerDb[lg] = out;
-    return out;
-  } catch(e) {
-    console.error("Player load failed", e);
-    playerDb[lg] = [];
+    return reverseNflIds[teamId] || null;
+  } else {
+    if (!reverseNbaIds) {
+      reverseNbaIds = {};
+      for (const [abbr, id] of Object.entries(ESPN_NBA_IDS)) reverseNbaIds[id] = abbr;
+    }
+    return reverseNbaIds[teamId] || null;
+  }
+}
+
+// ====== ESPN API FUNCTIONS ======
+
+async function searchPlayersESPN(query, lg) {
+  const sport = lg === "NFL" ? "football" : "basketball";
+  const url = `${ESPN_SEARCH}?query=${encodeURIComponent(query)}&limit=10&type=player&sport=${sport}`;
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) return [];
+    const data = await resp.json();
+    const items = data.items || [];
+    return items.map(item => ({
+      espnId: String(item.id),
+      name: item.displayName || item.name || ""
+    })).filter(p => p.espnId && p.name);
+  } catch (e) {
+    console.error("ESPN search failed", e);
     return [];
   }
+}
+
+async function fetchAthleteInfo(espnId, lg) {
+  const cacheKey = `athlete:${lg}:${espnId}`;
+  if (espnCache[cacheKey]) return espnCache[cacheKey];
+  const sport = lg === "NFL" ? "football" : "basketball";
+  const leaguePath = lg === "NFL" ? "nfl" : "nba";
+  const url = `${ESPN_CORE}/${sport}/leagues/${leaguePath}/athletes/${espnId}`;
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) return { name: "Unknown", imageUrl: "" };
+    const data = await resp.json();
+    const result = {
+      name: data.displayName || "Unknown",
+      imageUrl: (data.headshot && data.headshot.href) || ""
+    };
+    espnCache[cacheKey] = result;
+    return result;
+  } catch (e) {
+    console.error("ESPN athlete info failed", e);
+    return { name: "Unknown", imageUrl: "" };
+  }
+}
+
+async function fetchSeasonLog(espnId, lg) {
+  const cacheKey = `seasonlog:${lg}:${espnId}`;
+  if (espnCache[cacheKey]) return espnCache[cacheKey];
+  const sport = lg === "NFL" ? "football" : "basketball";
+  const leaguePath = lg === "NFL" ? "nfl" : "nba";
+  const url = `${ESPN_CORE}/${sport}/leagues/${leaguePath}/athletes/${espnId}/statisticslog`;
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) return [];
+    const data = await resp.json();
+    const entries = data.entries || [];
+    const seasons = [];
+    for (const entry of entries) {
+      // Extract season from $ref
+      const seasonRef = entry.season && entry.season.$ref;
+      if (!seasonRef) continue;
+      const seasonMatch = seasonRef.match(/\/seasons\/(\d+)/);
+      if (!seasonMatch) continue;
+      const season = parseInt(seasonMatch[1]);
+
+      // Extract team IDs from statistics refs
+      const teamIds = [];
+      const stats = entry.statistics || [];
+      for (const s of stats) {
+        const teamRef = s.team && s.team.$ref;
+        if (!teamRef) continue;
+        const teamMatch = teamRef.match(/\/teams\/(\d+)/);
+        if (teamMatch) teamIds.push(parseInt(teamMatch[1]));
+      }
+      seasons.push({ season, teamIds });
+    }
+    // Sort descending by season
+    seasons.sort((a, b) => b.season - a.season);
+    espnCache[cacheKey] = seasons;
+    return seasons;
+  } catch (e) {
+    console.error("ESPN season log failed", e);
+    return [];
+  }
+}
+
+async function fetchSeasonStats(espnId, season, lg) {
+  const cacheKey = `stats:${lg}:${espnId}:${season}`;
+  if (espnCache[cacheKey]) return espnCache[cacheKey];
+  const sport = lg === "NFL" ? "football" : "basketball";
+  const leaguePath = lg === "NFL" ? "nfl" : "nba";
+  const url = `${ESPN_CORE}/${sport}/leagues/${leaguePath}/seasons/${season}/types/2/athletes/${espnId}/statistics/0`;
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    const categories = (data.splits && data.splits.categories) || [];
+    espnCache[cacheKey] = categories;
+    return categories;
+  } catch (e) {
+    console.error("ESPN season stats failed", e);
+    return null;
+  }
+}
+
+function extractStat(categories, statCat) {
+  const mapping = ESPN_STAT_MAP[statCat];
+  if (!mapping || !categories) return null;
+  const cat = categories.find(c => c.name === mapping.cat);
+  if (!cat || !cat.stats) return null;
+  let s = cat.stats.find(st => st.name === mapping.stat);
+  // For qbr/passerRating, also try QBRating
+  if (!s && statCat === "qbr") {
+    s = cat.stats.find(st => st.name === "QBRating");
+  }
+  if (!s) return null;
+  let val = parseFloat(s.value);
+  if (isNaN(val)) return null;
+  // For ftp/freeThrowPct: ESPN returns e.g. 87.3, we need 0.873
+  if (statCat === "ftp") val = val / 100;
+  return val;
 }
 
 // ====== PUZZLE GEN ======
@@ -550,7 +709,7 @@ function randInt(a,b) { return Math.floor(Math.random()*(b-a+1))+a; }
 function shuffle(a) { for(let i=a.length-1;i>0;i--){const j=randInt(0,i);[a[i],a[j]]=[a[j],a[i]];} return a; }
 
 function teamsOverlap(a, b) {
-  // null means ANY — overlaps with everything
+  // null means ANY -- overlaps with everything
   if (!a || !b) return true;
   return a.some(t => b.includes(t));
 }
@@ -600,20 +759,6 @@ function genPuzzle(lg) {
   return { lg, stat, rows, done:false };
 }
 
-// ====== API ======
-function cacheKey(pid, stat, lg) { return `${lg}:${stat}:${pid}`; }
-
-async function fetchStats(pid, stat, lg) {
-  const key = cacheKey(pid, stat, lg);
-  if (statsCache[key]) return statsCache[key];
-  const u = `${API_BASE}/api/player-stats-all?player_id=${encodeURIComponent(pid)}&stat=${encodeURIComponent(stat)}&league=${encodeURIComponent(lg)}`;
-  const r = await fetch(u);
-  if (!r.ok) throw new Error("API error");
-  const data = await r.json();
-  statsCache[key] = data;
-  return data;
-}
-
 // ====== LOGO ======
 function logoUrl(label, lg) {
   const logos = lg==="NFL" ? NFL_LOGOS : NBA_LOGOS;
@@ -644,30 +789,7 @@ function fmtSeason(y, lg) {
 function teamMatchesRow(team, row) {
   if (!row.validTeams) return true;
   const t = (team||"").toUpperCase();
-  if (MULTI_TEAM.has(t)) return true;
   return row.validTeams.some(v => v.toUpperCase()===t);
-}
-
-// ====== EXTRACT VALID SEASONS FROM API DATA ======
-// strict=true means multi-team entries (2TM etc) are excluded
-function extractValidSeasons(data, row, strict) {
-  if (!data?.rows) return [];
-  return data.rows
-    .filter(r => {
-      if (r.stat == null) return false;
-      const s = typeof r.season==="string" ? parseInt(r.season) : r.season;
-      if (s < row.ys || s > row.ye) return false;
-      const t = (r.team||"").toUpperCase();
-      if (MULTI_TEAM.has(t)) return !strict; // skip multi-team in strict mode
-      if (!row.validTeams) return true; // ANY
-      return row.validTeams.some(v => v.toUpperCase()===t);
-    })
-    .map(r => ({
-      name: `${data.first_name||"?"} ${data.last_name||"?"}`,
-      season: typeof r.season==="string" ? parseInt(r.season) : r.season,
-      team: r.team||"",
-      score: Number(r.stat)
-    }));
 }
 
 // ====== SCORING TIER (uses top answers if available) ======
@@ -686,23 +808,7 @@ function getTier(row) {
   return "";
 }
 
-// ====== TOP 5 FOR SLOT (roster-based fetch) ======
-// ====== ESPN-BASED TOP ANSWERS ======
-// ESPN team ID mappings
-const ESPN_NBA_IDS = {"ATL":1,"BOS":2,"BRK":17,"CHA":30,"CHI":4,"CLE":5,"DAL":6,"DEN":7,"DET":8,"GSW":9,"HOU":10,"IND":11,"LAC":12,"LAL":13,"MEM":29,"MIA":14,"MIL":15,"MIN":16,"NOP":3,"NYK":18,"OKC":25,"ORL":19,"PHI":20,"PHO":21,"POR":22,"SAC":23,"SAS":24,"TOR":28,"UTA":26,"WAS":27};
-const ESPN_NFL_IDS = {"ARI":22,"ATL":1,"BAL":33,"BUF":2,"CAR":29,"CHI":3,"CIN":4,"CLE":5,"DAL":6,"DEN":7,"DET":8,"GNB":9,"HOU":34,"IND":11,"JAX":30,"KAN":12,"LAC":24,"LAR":14,"LVR":13,"MIA":15,"MIN":16,"NOR":18,"NWE":17,"NYG":19,"NYJ":20,"PHI":21,"PIT":23,"SEA":26,"SFO":25,"TAM":27,"TEN":10,"WAS":28};
-
-// Map our stat categories to ESPN leader category names
-const STAT_TO_ESPN = {
-  // NBA
-  "pts_pg":"pointsPerGame", "ast_tot":"assistsPerGame", "three_tot":"3PointMadePerGame", "ftp":"fieldGoalPercentage",
-  "trb_tot":"reboundsPerGame", "trb_pg":"reboundsPerGame",
-  "stl_tot":"stealsPerGame", "stl_pg":"stealsPerGame", "blk_tot":"blocksPerGame", "blk_pg":"blocksPerGame",
-  // NFL
-  "pass_yds":"passingYards", "pass_td":"passingTouchdowns", "rush_yds":"rushingYards", "rush_td":"rushingTouchdowns",
-  "rec_yds":"receivingYards", "rec":"receptions", "rec_ypg":"receivingYards", "rush_ypg":"rushingYards",
-  "scrim_yds":"rushingYards", "tot_td":"rushingTouchdowns", "qbr":"quarterbackRating", "pass_int":"interceptions",
-};
+// ====== TOP 5 FOR SLOT (ESPN-based) ======
 
 function getEspnTeamIds(row, lg) {
   const idMap = lg === "NFL" ? ESPN_NFL_IDS : ESPN_NBA_IDS;
@@ -713,11 +819,11 @@ function getEspnTeamIds(row, lg) {
   return Object.values(idMap);
 }
 
-// Fetch ESPN leaders for one team+season, return player names (not stats)
+// Fetch ESPN leaders for one team+season, return player names AND athlete IDs
 async function fetchEspnLeaderNames(espnTeamId, season, espnCat, lg) {
   const sport = lg === "NFL" ? "football" : "basketball";
-  const league = lg === "NFL" ? "nfl" : "nba";
-  const url = `https://sports.core.api.espn.com/v2/sports/${sport}/leagues/${league}/seasons/${season}/types/2/teams/${espnTeamId}/leaders?limit=5`;
+  const leaguePath = lg === "NFL" ? "nfl" : "nba";
+  const url = `https://sports.core.api.espn.com/v2/sports/${sport}/leagues/${leaguePath}/seasons/${season}/types/2/teams/${espnTeamId}/leaders?limit=5`;
   try {
     const resp = await fetch(url);
     if (!resp.ok) return [];
@@ -725,35 +831,22 @@ async function fetchEspnLeaderNames(espnTeamId, season, espnCat, lg) {
     const cat = data.categories?.find(c => c.name === espnCat);
     if (!cat?.leaders) return [];
 
-    // Resolve athlete names in parallel
-    const names = await Promise.all(cat.leaders.map(async (l) => {
+    // Resolve athlete names and IDs in parallel
+    const results = await Promise.all(cat.leaders.map(async (l) => {
       try {
         const ref = l.athlete?.$ref?.replace("http://", "https://");
         if (!ref) return null;
+        // Extract athlete ID from ref URL
+        const idMatch = ref.match(/\/athletes\/(\d+)/);
+        const athleteId = idMatch ? idMatch[1] : null;
         const aResp = await fetch(ref);
         if (!aResp.ok) return null;
         const athlete = await aResp.json();
-        return athlete.displayName || null;
+        return { name: athlete.displayName || null, espnId: athleteId };
       } catch { return null; }
     }));
-    return names.filter(Boolean);
+    return results.filter(r => r && r.name);
   } catch { return []; }
-}
-
-// Find a player ID by name
-function findPlayerIdByName(name, lg) {
-  const db = playerDb[lg] || [];
-  const lower = name.toLowerCase();
-  // Exact match first
-  const exact = db.find(p => `${p.fn} ${p.ln}`.toLowerCase() === lower);
-  if (exact) return exact.id;
-  // Partial match (last name + first initial)
-  const parts = lower.split(" ");
-  if (parts.length >= 2) {
-    const match = db.find(p => p.ln.toLowerCase() === parts[parts.length-1] && p.fn.toLowerCase().startsWith(parts[0][0]));
-    if (match) return match.id;
-  }
-  return null;
 }
 
 async function fetchTopAnswersForRow(rowIdx) {
@@ -779,8 +872,8 @@ async function fetchTopAnswersForRow(rowIdx) {
   // Cap queries
   const toQuery = queries.length > 60 ? shuffle([...queries]).slice(0, 60) : queries;
 
-  // Step 1: Get player NAMES from ESPN (fast, tells us who the leaders are)
-  const playerNames = new Set();
+  // Step 1: Get player names AND ESPN IDs from ESPN leaders
+  const playerMap = new Map(); // espnId -> name
   for (let b = 0; b < toQuery.length; b += 10) {
     if (game.rows[rowIdx] !== row) return;
     const batch = toQuery.slice(b, b + 10);
@@ -788,34 +881,58 @@ async function fetchTopAnswersForRow(rowIdx) {
       batch.map(q => fetchEspnLeaderNames(q.tid, q.season, espnCat, lg))
     );
     for (const r of results) {
-      if (r.status === "fulfilled") r.value.forEach(n => playerNames.add(n));
+      if (r.status === "fulfilled") {
+        for (const leader of r.value) {
+          if (leader.espnId && leader.name) {
+            playerMap.set(leader.espnId, leader.name);
+          }
+        }
+      }
     }
   }
 
-  // Step 2: Map ESPN names to player IDs
-  const playerIds = new Set();
-  for (const name of playerNames) {
-    const pid = findPlayerIdByName(name, lg);
-    if (pid) playerIds.add(pid);
-  }
-
-  // Step 3: Fetch actual season totals for these players
+  // Step 2: For each identified leader, fetch their season stats for all valid years
   let allEntries = [];
-  if (row.data) {
-    allEntries.push(...extractValidSeasons(row.data, row, true));
+
+  // Include user's own pick if present
+  if (row.player && row.statVal != null) {
+    allEntries.push({
+      name: `${row.player.fn} ${row.player.ln}`,
+      season: row.season,
+      team: row.team,
+      score: row.statVal
+    });
   }
 
-  const pids = [...playerIds];
-  for (let b = 0; b < pids.length; b += 8) {
+  const athletes = [...playerMap.entries()]; // [espnId, name]
+  for (let b = 0; b < athletes.length; b += 8) {
     if (game.rows[rowIdx] !== row) return;
-    const batch = pids.slice(b, b + 8);
+    const batch = athletes.slice(b, b + 8);
     const results = await Promise.allSettled(
-      batch.map(pid => fetchStats(pid, stat.cat, lg))
+      batch.map(async ([espnId, name]) => {
+        // Get season log to find which seasons this player was active
+        const seasonLog = await fetchSeasonLog(espnId, lg);
+        const entries = [];
+        for (const logEntry of seasonLog) {
+          if (logEntry.season < row.ys || logEntry.season > row.ye) continue;
+          // Check if team matches row constraint
+          const teamAbbrs = logEntry.teamIds.map(tid => espnTeamIdToAbbr(tid, lg)).filter(Boolean);
+          const matchingTeam = teamAbbrs.find(abbr => teamMatchesRow(abbr, row));
+          if (!matchingTeam && row.validTeams) continue; // skip if no team match
+          const displayTeam = matchingTeam || (teamAbbrs.length > 0 ? teamAbbrs[0] : "");
+
+          // Fetch stats for this season
+          const categories = await fetchSeasonStats(espnId, logEntry.season, lg);
+          if (!categories) continue;
+          const val = extractStat(categories, stat.cat);
+          if (val == null) continue;
+          entries.push({ name, season: logEntry.season, team: displayTeam, score: val });
+        }
+        return entries;
+      })
     );
     for (const r of results) {
-      if (r.status === "fulfilled" && r.value?.rows) {
-        allEntries.push(...extractValidSeasons(r.value, row, true));
-      }
+      if (r.status === "fulfilled") allEntries.push(...r.value);
     }
   }
 
@@ -1036,19 +1153,17 @@ function toggleExpand(i) {
   render();
 }
 
-async function switchLeague(lg) {
+function switchLeague(lg) {
   league = lg;
   document.querySelectorAll(".league-btn").forEach(b => b.classList.toggle("active", b.dataset.league===lg));
-  await loadPlayers(lg);
   newGame();
 }
 
-async function newGame() {
+function newGame() {
   expandedRow = -1;
   guesses = 0;
-  statsCache = {};
+  Object.keys(espnCache).forEach(k => { if (k.startsWith("stats:")) delete espnCache[k]; });
   animateNewGame = true;
-  await loadPlayers(league);
   game = genPuzzle(league);
   document.getElementById("statCategory").textContent = game.stat.display;
   document.getElementById("statType").textContent = game.stat.type;
@@ -1087,6 +1202,7 @@ function openSearch(i) {
   activeRow = i;
   selectedPlayerIdx = -1;
   searchResults = [];
+  selectedPlayerData = null;
   document.getElementById("modalTitle").textContent = "Add Player";
   document.getElementById("searchInput").value = "";
   document.getElementById("errorMsg").textContent = "";
@@ -1099,73 +1215,114 @@ function openSearch(i) {
 
 function closeSearch() {
   document.getElementById("searchModal").classList.remove("open");
-  activeRow = null; selectedPlayerIdx = -1; searchResults = [];
+  activeRow = null; selectedPlayerIdx = -1; searchResults = []; selectedPlayerData = null;
 }
 
+// Debounced search via ESPN
+let searchTimer = null;
 document.getElementById("searchInput").addEventListener("input", function() {
-  const q = this.value.trim().toLowerCase();
+  clearTimeout(searchTimer);
+  const q = this.value.trim();
   const list = document.getElementById("playerList");
   const status = document.getElementById("searchStatus");
   document.getElementById("yearSelectArea").innerHTML = "";
   selectedPlayerIdx = -1;
+  selectedPlayerData = null;
 
   if (q.length < 2) {
     list.innerHTML = ""; searchResults = [];
     status.textContent = "Type at least 2 characters..."; return;
   }
 
-  const db = playerDb[league] || [];
-  const row = game.rows[activeRow];
-  searchResults = db.filter(p => {
-    const full = `${p.fn} ${p.ln}`.toLowerCase();
-    const rev = `${p.ln} ${p.fn}`.toLowerCase();
-    if (!full.includes(q) && !rev.includes(q)) return false;
-    if (p.e < row.ys || p.s > row.ye) return false;
-    return true;
-  }).slice(0, 25);
-
-  if (!searchResults.length) {
-    list.innerHTML = ""; status.textContent = "No players found."; return;
-  }
-
-  status.textContent = `${searchResults.length} player${searchResults.length>1?"s":""} found`;
-  list.innerHTML = searchResults.map((p, idx) =>
-    `<li class="player-list-item" data-pidx="${idx}">
-      <span class="pname">${esc(p.fn)} ${esc(p.ln)}</span>
-      <span class="pyears">${p.s}-${p.e}</span></li>`
-  ).join("");
+  status.textContent = "Searching...";
+  searchTimer = setTimeout(() => doSearch(q), 300);
 });
 
-function pickPlayer(idx) {
+async function doSearch(q) {
+  const list = document.getElementById("playerList");
+  const status = document.getElementById("searchStatus");
+  try {
+    const results = await searchPlayersESPN(q, league);
+    searchResults = results;
+    if (!results.length) {
+      list.innerHTML = ""; status.textContent = "No players found."; return;
+    }
+    status.textContent = `${results.length} player${results.length>1?"s":""} found`;
+    list.innerHTML = results.map((p, idx) =>
+      `<li class="player-list-item" data-pidx="${idx}">
+        <span class="pname">${esc(p.name)}</span></li>`
+    ).join("");
+  } catch (e) {
+    console.error("Search error", e);
+    status.textContent = "Search failed. Try again.";
+  }
+}
+
+async function pickPlayer(idx) {
   const p = searchResults[idx];
   if (!p) return;
   selectedPlayerIdx = idx;
   const row = game.rows[activeRow];
-  const start = Math.max(p.s, row.ys);
-  const end = Math.min(p.e, row.ye);
 
-  let opts = "";
-  for (let y = end; y >= start; y--)
-    opts += `<option value="${y}">${fmtSeason(y, league)}</option>`;
-
-  document.getElementById("yearSelectArea").innerHTML = `
-    <div class="select-area">
-      <div class="selected-name">${esc(p.fn)} ${esc(p.ln)}</div>
-      <div class="year-row">
-        <label>Season:</label>
-        <select class="year-select" id="yearPick">${opts}</select>
-      </div>
-      <button class="submit-btn" id="subBtn">Submit</button>
-    </div>`;
-  document.getElementById("errorMsg").textContent = "";
   document.getElementById("playerList").innerHTML = "";
-  document.getElementById("searchStatus").textContent = "";
+  document.getElementById("searchStatus").textContent = '<span class="spinner"></span> Loading player data...';
+  document.getElementById("errorMsg").textContent = "";
+
+  try {
+    // Fetch athlete info and season log in parallel
+    const [info, seasonLog] = await Promise.all([
+      fetchAthleteInfo(p.espnId, league),
+      fetchSeasonLog(p.espnId, league)
+    ]);
+
+    selectedPlayerData = {
+      espnId: p.espnId,
+      name: info.name,
+      imageUrl: info.imageUrl,
+      seasonLog: seasonLog
+    };
+
+    // Filter seasons to row's year range
+    const validSeasons = seasonLog.filter(s => s.season >= row.ys && s.season <= row.ye);
+
+    if (validSeasons.length === 0) {
+      document.getElementById("searchStatus").textContent = "";
+      document.getElementById("errorMsg").textContent = "No seasons found in the required year range for this player.";
+      return;
+    }
+
+    // Build year selector with team abbreviation
+    let opts = "";
+    for (const s of validSeasons) {
+      const teamAbbrs = s.teamIds.map(tid => espnTeamIdToAbbr(tid, league)).filter(Boolean);
+      const teamLabel = teamAbbrs.length > 0 ? ` (${teamAbbrs.join("/")})` : "";
+      opts += `<option value="${s.season}">${fmtSeason(s.season, league)}${teamLabel}</option>`;
+    }
+
+    // Split display name into first/last for display
+    const nameParts = info.name.split(" ");
+    const firstName = nameParts[0] || "";
+    const lastName = nameParts.slice(1).join(" ") || "";
+
+    document.getElementById("yearSelectArea").innerHTML = `
+      <div class="select-area">
+        <div class="selected-name">${esc(info.name)}</div>
+        <div class="year-row">
+          <label>Season:</label>
+          <select class="year-select" id="yearPick">${opts}</select>
+        </div>
+        <button class="submit-btn" id="subBtn">Submit</button>
+      </div>`;
+    document.getElementById("searchStatus").textContent = "";
+  } catch (e) {
+    console.error("Pick player error", e);
+    document.getElementById("searchStatus").textContent = "";
+    document.getElementById("errorMsg").textContent = "Error loading player data. Try again.";
+  }
 }
 
 async function submitPick() {
-  if (selectedPlayerIdx < 0 || activeRow===null || submitting) return;
-  const sp = searchResults[selectedPlayerIdx];
-  if (!sp) return;
+  if (selectedPlayerIdx < 0 || activeRow===null || submitting || !selectedPlayerData) return;
   expandedRow = -1;
   submitting = true;
   const btn = document.getElementById("subBtn");
@@ -1176,36 +1333,50 @@ async function submitPick() {
   const row = game.rows[activeRow];
   const season = +document.getElementById("yearPick").value;
   const savedRow = activeRow;
+  const espnId = selectedPlayerData.espnId;
 
   try {
     guesses++;
-    const data = await fetchStats(sp.id, game.stat.cat, league);
-    if (!data?.rows?.length) {
-      document.getElementById("errorMsg").textContent = "No stats found for this player in this category.";
+
+    // Fetch season stats from ESPN
+    const categories = await fetchSeasonStats(espnId, season, league);
+    if (!categories || categories.length === 0) {
+      document.getElementById("errorMsg").textContent = "No stats found for this player in this season.";
       resetBtn(); return;
     }
 
-    const sr = data.rows.find(r => {
-      const s = typeof r.season==="string" ? parseInt(r.season) : r.season;
-      return s === season;
-    });
-    if (!sr) {
+    // Extract the stat value
+    const statVal = extractStat(categories, game.stat.cat);
+    if (statVal == null) {
       document.getElementById("errorMsg").textContent = `No ${game.stat.display} data for ${fmtSeason(season, league)}.`;
       resetBtn(); return;
     }
 
-    if (!teamMatchesRow(sr.team, row)) {
-      document.getElementById("errorMsg").textContent = `${sp.fn} ${sp.ln} played for ${sr.team||"?"} in ${season}, not ${row.label}.`;
+    // Determine team for this season from season log
+    const seasonEntry = selectedPlayerData.seasonLog.find(s => s.season === season);
+    const teamIds = seasonEntry ? seasonEntry.teamIds : [];
+    const teamAbbrs = teamIds.map(tid => espnTeamIdToAbbr(tid, league)).filter(Boolean);
+
+    // Find a team that matches the row constraint
+    let matchedTeam = teamAbbrs.find(abbr => teamMatchesRow(abbr, row));
+    if (!matchedTeam && row.validTeams) {
+      // No matching team
+      const playerTeamDisplay = teamAbbrs.length > 0 ? teamAbbrs.join("/") : "?";
+      document.getElementById("errorMsg").textContent = `${selectedPlayerData.name} played for ${playerTeamDisplay} in ${fmtSeason(season, league)}, not ${row.label}.`;
       resetBtn(); return;
     }
+    if (!matchedTeam) matchedTeam = teamAbbrs.length > 0 ? teamAbbrs[0] : "";
 
-    // Success
-    row.player = { fn: data.first_name||sp.fn, ln: data.last_name||sp.ln };
-    row.data = data;
-    row.statVal = sr.stat!=null ? Number(sr.stat) : 0;
+    // Success - split name for display
+    const nameParts = selectedPlayerData.name.split(" ");
+    const firstName = nameParts[0] || "";
+    const lastName = nameParts.slice(1).join(" ") || "";
+
+    row.player = { fn: firstName, ln: lastName };
+    row.statVal = statVal;
     row.season = season;
-    row.team = sr.team || "";
-    row.imgUrl = data.image_url || "";
+    row.team = matchedTeam;
+    row.imgUrl = selectedPlayerData.imageUrl;
     row.topAnswers = null; // will be fetched on expand
     lastFilledRow = savedRow;
 
@@ -1306,10 +1477,7 @@ document.getElementById("gridContainer").addEventListener("click", e => {
 });
 
 // ====== INIT ======
-(async () => {
-  await loadPlayers("NFL");
-  newGame();
-})();
+newGame();
 </script>
 </body>
 </html>
