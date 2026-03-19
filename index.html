@@ -308,6 +308,17 @@
   }
   .conclusion-detail .val { font-weight: 700; color: #fff; }
   .conclusion-loading { font-size: 13px; color: #666; margin-top: 8px; }
+  .share-btn {
+    display: inline-block; margin-top: 16px; padding: 10px 28px;
+    background: #4CAF50; color: #fff; border: none; border-radius: 8px;
+    font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+  }
+  .share-btn:hover { background: #43a047; }
+  .share-btn.copied { background: #333; color: #aaa; }
+  .share-row-detail {
+    display: flex; justify-content: center; gap: 6px; margin-top: 12px;
+    font-size: 20px; letter-spacing: 2px;
+  }
 
   /* Confetti canvas */
   #confetti { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 999; }
@@ -933,14 +944,27 @@ function render() {
       const pctClass = pct >= 90 ? "pct-great" : pct >= 70 ? "pct-good" : pct >= 50 ? "pct-ok" : "pct-low";
       const remark = pct >= 95 ? "Legendary!" : pct >= 85 ? "Excellent!" : pct >= 70 ? "Solid!" : pct >= 50 ? "Not bad." : "Better luck next time.";
 
+      // Build tier emojis for share
+      const tierEmojis = game.rows.map(r => {
+        if (!r.player || r.player.fn === "Give") return "\u2b1b";
+        const t = getTier(r);
+        if (t === "tier-legendary") return "\ud83d\udfe7";
+        if (t === "tier-diamond") return "\ud83d\udfe6";
+        if (t === "tier-gold") return "\ud83d\udfe8";
+        if (t === "tier-silver") return "\u2b1c";
+        return "\u2b1b";
+      });
+
       html += `<div class="conclusion">`;
       html += `<h2>${remark}</h2>`;
+      html += `<div class="share-row-detail">${tierEmojis.join("")}</div>`;
       html += `<div class="conclusion-pct ${pctClass}">${pct}%</div>`;
       html += `<div class="conclusion-label">of the best possible score</div>`;
       html += `<div class="conclusion-detail">`;
       html += `<div>Your score: <span class="val">${yourDisplay}</span></div>`;
       html += `<div>Best possible: <span class="val">${bestDisplay}</span></div>`;
       html += `</div>`;
+      html += `<button class="share-btn" data-share="${pct}" data-emojis="${tierEmojis.join("")}" data-sport="${game.lg}" data-stat="${esc(game.stat.display)}" data-score="${yourDisplay}">Share Results</button>`;
       html += `</div>`;
     } else if (anyLoading) {
       html += `<div class="conclusion">`;
@@ -1245,6 +1269,34 @@ document.getElementById("rulesModal").addEventListener("click", e => {
 });
 document.addEventListener("keydown", e => {
   if (e.key === "Escape") { closeSearch(); closeRules(); }
+});
+
+// Share button
+document.getElementById("gridContainer").addEventListener("click", e => {
+  const btn = e.target.closest(".share-btn");
+  if (!btn) return;
+  const emojis = btn.dataset.emojis;
+  const pct = btn.dataset.share;
+  const sport = btn.dataset.sport;
+  const stat = btn.dataset.stat;
+  const score = btn.dataset.score;
+
+  const text = `StatStacker ${sport === "NFL" ? "\ud83c\udfc8" : "\ud83c\udfc0"} ${stat}\n${emojis}\nScore: ${score} (${pct}% of best)\nstatstacker.com`;
+
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = "Copied!";
+    btn.classList.add("copied");
+    setTimeout(() => { btn.textContent = "Share Results"; btn.classList.remove("copied"); }, 2000);
+  }).catch(() => {
+    // Fallback
+    const ta = document.createElement("textarea");
+    ta.value = text; document.body.appendChild(ta);
+    ta.select(); document.execCommand("copy");
+    document.body.removeChild(ta);
+    btn.textContent = "Copied!";
+    btn.classList.add("copied");
+    setTimeout(() => { btn.textContent = "Share Results"; btn.classList.remove("copied"); }, 2000);
+  });
 });
 
 // ====== INIT ======
