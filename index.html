@@ -1513,15 +1513,15 @@ async function submitPick() {
     const teamIds = seasonEntry ? seasonEntry.teamIds : [];
     const teamAbbrs = teamIds.map(tid => espnTeamIdToAbbr(tid, league)).filter(Boolean);
 
-    // Find a team that matches the row constraint
-    let matchedTeam = teamAbbrs.find(abbr => teamMatchesRow(abbr, row));
+    // Find a team that matches the row constraint (prefer last/most recent for traded players)
+    const matchingTeams = teamAbbrs.filter(abbr => teamMatchesRow(abbr, row));
+    let matchedTeam = matchingTeams.length > 0 ? matchingTeams[matchingTeams.length - 1] : null;
     if (!matchedTeam && row.validTeams) {
-      // No matching team
       const playerTeamDisplay = teamAbbrs.length > 0 ? teamAbbrs.join("/") : "?";
       document.getElementById("errorMsg").textContent = `${selectedPlayerData.name} played for ${playerTeamDisplay} in ${fmtSeason(season, league)}, not ${row.label}.`;
       resetBtn(); return;
     }
-    if (!matchedTeam) matchedTeam = teamAbbrs.length > 0 ? teamAbbrs[0] : "";
+    if (!matchedTeam) matchedTeam = teamAbbrs.length > 0 ? teamAbbrs[teamAbbrs.length - 1] : "";
 
     // Success - split name for display
     const nameParts = selectedPlayerData.name.split(" ");
