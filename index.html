@@ -378,7 +378,7 @@
 <div class="bottom-bar">
   <button class="bottom-btn" onclick="giveUp()">! GIVE UP</button>
   <button class="bottom-btn" onclick="showRules()">? HOW TO PLAY</button>
-  <button class="bottom-btn" onclick="showFeedback()">FEEDBACK</button>
+  <a class="bottom-btn" href="GOOGLE_FORM_URL_HERE" target="_blank" rel="noopener" style="text-decoration:none">FEEDBACK</a>
 </div>
 
 <!-- Search Modal -->
@@ -417,28 +417,6 @@
         <li>Hit <strong>"Share Results"</strong> to copy a shareable summary to your clipboard.</li>
         <li>Click <strong>"New Game"</strong> anytime for a fresh puzzle. No daily limits!</li>
       </ol>
-    </div>
-  </div>
-</div>
-
-<!-- Feedback Modal -->
-<div class="modal-overlay" id="feedbackModal">
-  <div class="modal">
-    <div class="modal-header">
-      <h3>Send Feedback</h3>
-      <button class="modal-close" onclick="closeFeedback()">&times;</button>
-    </div>
-    <div class="modal-body">
-      <form id="feedbackForm">
-        <select class="year-select" id="feedbackType" style="width:100%;margin-bottom:10px">
-          <option value="bug">Bug Report</option>
-          <option value="suggestion">Suggestion</option>
-          <option value="other">Other</option>
-        </select>
-        <textarea id="feedbackText" style="width:100%;min-height:100px;padding:10px;background:#1e1e1c;border:1px solid #444;border-radius:8px;color:#fff;font-size:14px;resize:vertical;font-family:inherit" placeholder="Describe the issue or suggestion..."></textarea>
-        <button type="submit" class="submit-btn" style="margin-top:10px" id="feedbackSubmitBtn">Send</button>
-        <div class="error-msg" id="feedbackStatus"></div>
-      </form>
     </div>
   </div>
 </div>
@@ -1671,50 +1649,6 @@ document.getElementById("gridContainer").addEventListener("click", e => {
     btn.classList.add("copied");
     setTimeout(() => { btn.textContent = "Share Results"; btn.classList.remove("copied"); }, 2000);
   });
-});
-
-// ====== FEEDBACK ======
-function showFeedback() { document.getElementById("feedbackModal").classList.add("open"); }
-function closeFeedback() {
-  document.getElementById("feedbackModal").classList.remove("open");
-  document.getElementById("feedbackStatus").textContent = "";
-}
-document.getElementById("feedbackModal").addEventListener("click", e => {
-  if (e.target === document.getElementById("feedbackModal")) closeFeedback();
-});
-
-document.getElementById("feedbackForm").addEventListener("submit", async function(e) {
-  e.preventDefault();
-  const type = document.getElementById("feedbackType").value;
-  const text = document.getElementById("feedbackText").value.trim();
-  const status = document.getElementById("feedbackStatus");
-  const btn = document.getElementById("feedbackSubmitBtn");
-  if (!text) { status.textContent = "Please enter some feedback."; return; }
-
-  btn.disabled = true;
-  btn.textContent = "Sending...";
-
-  try {
-    const resp = await fetch("https://formspree.io/f/FORM_ID_HERE", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Accept": "application/json" },
-      body: JSON.stringify({ type, message: text, _subject: `StatStacker ${type}: ${text.slice(0,50)}` })
-    });
-    if (resp.ok) {
-      status.style.color = "#4CAF50";
-      status.textContent = "Thanks! Feedback sent.";
-      document.getElementById("feedbackText").value = "";
-      setTimeout(closeFeedback, 1500);
-    } else {
-      status.style.color = "#ef5350";
-      status.textContent = "Failed to send. Try again.";
-    }
-  } catch {
-    status.style.color = "#ef5350";
-    status.textContent = "Failed to send. Try again.";
-  }
-  btn.disabled = false;
-  btn.textContent = "Send";
 });
 
 // ====== INIT ======
