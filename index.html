@@ -904,6 +904,33 @@ async function fetchEspnLeaderNames(espnTeamId, season, espnCat, lg) {
   } catch { return []; }
 }
 
+// Fetch league-wide leaders for a season (not team-specific)
+async function fetchLeagueLeaderNames(season, espnCat, lg) {
+  const sport = lg === "NFL" ? "football" : "basketball";
+  const leaguePath = lg === "NFL" ? "nfl" : "nba";
+  const url = `${ESPN_CORE}/${sport}/leagues/${leaguePath}/seasons/${season}/types/2/leaders?limit=5`;
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) return [];
+    const data = await resp.json();
+    const cat = data.categories?.find(c => c.name === espnCat);
+    if (!cat?.leaders) return [];
+    const results = await Promise.all(cat.leaders.map(async (l) => {
+      try {
+        const ref = l.athlete?.$ref?.replace("http://", "https://");
+        if (!ref) return null;
+        const idMatch = ref.match(/\/athletes\/(\d+)/);
+        const athleteId = idMatch ? idMatch[1] : null;
+        const aResp = await fetch(ref);
+        if (!aResp.ok) return null;
+        const athlete = await aResp.json();
+        return { name: athlete.displayName || null, espnId: athleteId };
+      } catch { return null; }
+    }));
+    return results.filter(r => r && r.name);
+  } catch { return []; }
+}
+
 async function fetchTopAnswersForRow(rowIdx) {
   const row = game.rows[rowIdx];
   if (!game) return;
@@ -915,31 +942,46 @@ async function fetchTopAnswersForRow(rowIdx) {
   const espnCat = STAT_TO_ESPN[stat.cat];
   if (!espnCat) { row.topLoading = false; row.topAnswers = []; render(); return; }
 
-  const espnTeamIds = getEspnTeamIds(row, lg);
-  // For ANY (30+ teams), sample down. For divisions/conferences, keep all teams.
-  const teamIds = espnTeamIds.length > 16 ? shuffle([...espnTeamIds]).slice(0, 12) : espnTeamIds;
+  const useLeagueWide = !row.validTeams || row.validTeams.length > 8;
 
-  // Build (teamId, season) pairs
-  const queries = [];
-  for (const tid of teamIds) {
-    for (let y = row.ys; y <= row.ye; y++) queries.push({ tid, season: y });
-  }
-  // Only cap for truly huge ranges (ANY + 40+ years). Otherwise query all.
-  const toQuery = queries.length > 200 ? shuffle([...queries]).slice(0, 150) : queries;
-
-  // Step 1: Get player names AND ESPN IDs from ESPN leaders
+  // Step 1: Identify candidate players from ESPN leaders
   const playerMap = new Map(); // espnId -> name
-  for (let b = 0; b < toQuery.length; b += 10) {
-    if (game.rows[rowIdx] !== row) return;
-    const batch = toQuery.slice(b, b + 10);
-    const results = await Promise.allSettled(
-      batch.map(q => fetchEspnLeaderNames(q.tid, q.season, espnCat, lg))
-    );
-    for (const r of results) {
-      if (r.status === "fulfilled") {
-        for (const leader of r.value) {
-          if (leader.espnId && leader.name) {
-            playerMap.set(leader.espnId, leader.name);
+
+  if (useLeagueWide) {
+    // Use league-wide leaders (1 call per season instead of N teams x seasons)
+    const seasons = [];
+    for (let y = row.ys; y <= row.ye; y++) seasons.push(y);
+    for (let b = 0; b < seasons.length; b += 10) {
+      if (game.rows[rowIdx] !== row) return;
+      const batch = seasons.slice(b, b + 10);
+      const results = await Promise.allSettled(
+        batch.map(y => fetchLeagueLeaderNames(y, espnCat, lg))
+      );
+      for (const r of results) {
+        if (r.status === "fulfilled") {
+          for (const leader of r.value) {
+            if (leader.espnId && leader.name) playerMap.set(leader.espnId, leader.name);
+          }
+        }
+      }
+    }
+  } else {
+    // Use team-specific leaders (query every team+season combo — no cap)
+    const espnTeamIds = getEspnTeamIds(row, lg);
+    const queries = [];
+    for (const tid of espnTeamIds) {
+      for (let y = row.ys; y <= row.ye; y++) queries.push({ tid, season: y });
+    }
+    for (let b = 0; b < queries.length; b += 10) {
+      if (game.rows[rowIdx] !== row) return;
+      const batch = queries.slice(b, b + 10);
+      const results = await Promise.allSettled(
+        batch.map(q => fetchEspnLeaderNames(q.tid, q.season, espnCat, lg))
+      );
+      for (const r of results) {
+        if (r.status === "fulfilled") {
+          for (const leader of r.value) {
+            if (leader.espnId && leader.name) playerMap.set(leader.espnId, leader.name);
           }
         }
       }
