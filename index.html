@@ -300,6 +300,17 @@
     font-size: 20px; letter-spacing: 2px;
   }
 
+  /* Era selector */
+  .era-select {
+    padding: 7px 10px; background: transparent; border: 2px solid #444;
+    border-radius: 6px; color: #aaa; font-size: 13px; font-weight: 700;
+    cursor: pointer; outline: none; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 8px center;
+    padding-right: 24px;
+  }
+  .era-select:focus { border-color: #4CAF50; color: #4CAF50; }
+
   /* Confetti canvas */
   #confetti { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 999; }
 
@@ -309,6 +320,7 @@
     .cell { min-height: 68px; }
     .cell-team img { width: 40px; height: 40px; }
     .scores-row { gap: 30px; }
+    .header-controls { flex-wrap: wrap; }
   }
 </style>
 </head>
@@ -319,6 +331,14 @@
   <div class="header-controls">
     <button class="league-btn active" data-league="NFL" onclick="switchLeague('NFL')">NFL</button>
     <button class="league-btn" data-league="NBA" onclick="switchLeague('NBA')">NBA</button>
+    <select class="era-select" id="eraSelect" onchange="changeEra(this.value)">
+      <option value="1980">All-Time (1980+)</option>
+      <option value="1990">1990+</option>
+      <option value="2000">2000+</option>
+      <option value="2010">2010+</option>
+      <option value="2015" selected>2015+</option>
+      <option value="2020">2020+</option>
+    </select>
     <button class="new-game-btn" onclick="newGame()">New Game</button>
   </div>
 </div>
@@ -551,6 +571,7 @@ const ESPN_STAT_MAP = {
 
 // ====== STATE ======
 let league = "NFL";
+let eraMinYear = 2015;
 let game = null;
 let activeRow = null;
 let selectedPlayerIdx = -1; // index into current search results
@@ -771,15 +792,16 @@ function genPuzzle(lg) {
     }
 
     // Generate year range that doesn't overlap with any existing row sharing team coverage
+    const mn = eraMinYear;
     const yearOptions = [
-      () => { const y=randInt(2019,2025); return [y,y]; },           // single recent year
-      () => { const y=randInt(2005,2018); return [y,y]; },           // single older year
-      () => [randInt(2015,2020), 2025],                               // recent range
-      () => [randInt(2005,2014), randInt(2014,2019)],                 // mid range
-      () => [randInt(2000,2010), 2025],                               // wide range
-      () => [randInt(1990,2000), randInt(2005,2015)],                 // historical range
-      () => [1980, randInt(2000,2010)],                               // early era
-      () => [1980, 2025],                                             // full range
+      () => { const y=randInt(Math.max(mn,2019),2025); return [y,y]; },
+      () => { const y=randInt(mn,2018); return [y,y]; },
+      () => [randInt(Math.max(mn,2015),2020), 2025],
+      () => [randInt(mn, Math.max(mn,2014)), randInt(Math.max(mn+5,2014),2019)],
+      () => [randInt(mn, Math.max(mn,2010)), 2025],
+      () => { const s=randInt(mn,Math.max(mn,2000)); return [s, randInt(s+5,Math.min(s+15,2025))]; },
+      () => [mn, randInt(Math.max(mn,2000),Math.max(mn+10,2010))],
+      () => [mn, 2025],
     ];
     let ys, ye, attempts = 0;
     do {
@@ -1188,6 +1210,11 @@ function toggleExpand(i) {
     fetchTopAnswersForRow(i);
   }
   render();
+}
+
+function changeEra(val) {
+  eraMinYear = parseInt(val);
+  newGame();
 }
 
 function switchLeague(lg) {
