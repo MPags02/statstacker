@@ -1314,13 +1314,10 @@ function renderSearchList() {
   const list = document.getElementById("playerList");
   list.innerHTML = searchResults.map((p, idx) => {
     let detail = "";
-    if (p.position && p.debutYear) {
-      detail = p.active ? `${p.position} · ${p.debutYear}-pres.` : `${p.position} · from ${p.debutYear}`;
-    } else if (p.debutYear) {
-      detail = p.active ? `${p.debutYear}-pres.` : `from ${p.debutYear}`;
-    } else if (p.position) {
-      detail = p.position;
-    }
+    const years = p.debutYear ? (p.active ? `${p.debutYear}-pres.` : p.endYear ? `${p.debutYear}-${p.endYear}` : `from ${p.debutYear}`) : "";
+    if (p.position && years) detail = `${p.position} · ${years}`;
+    else if (years) detail = years;
+    else if (p.position) detail = p.position;
     return `<li class="player-list-item" data-pidx="${idx}">
       <span class="pname">${esc(p.name)}</span>
       <span class="pyears">${esc(detail)}</span></li>`;
@@ -1340,8 +1337,8 @@ async function doSearch(q) {
       .filter(p => p.n.toLowerCase().includes(ql))
       .slice(0, 15)
       .map(p => ({
-        espnId: p.id, name: p.n, position: p.p || "",
-        debutYear: p.d || null, active: p.a, experience: 0
+        espnId: p.id || null, name: p.n, position: p.p || "",
+        debutYear: p.d || null, endYear: p.e || null, active: p.a
       }));
 
     if (!searchResults.length) {
@@ -1366,7 +1363,21 @@ async function pickPlayer(idx) {
   document.getElementById("errorMsg").textContent = "";
 
   try {
-    const espnId = p.espnId;
+    let espnId = p.espnId;
+    if (!espnId) {
+      // Retired player without ESPN ID — resolve by searching ESPN
+      try {
+        const resp = await fetch(`${ESPN_SEARCH}?query=${encodeURIComponent(p.name)}&limit=5`);
+        const data = await resp.json();
+        const match = (data.items || []).find(i => (i.displayName || "").toLowerCase() === p.name.toLowerCase());
+        if (match) { espnId = String(match.id); p.espnId = espnId; }
+      } catch {}
+      if (!espnId) {
+        document.getElementById("searchStatus").textContent = "";
+        document.getElementById("errorMsg").textContent = "Could not find stats for this player. Try a different spelling.";
+        return;
+      }
+    }
 
     // Fetch athlete info and season log in parallel
     const [info, seasonLog] = await Promise.all([
