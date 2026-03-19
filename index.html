@@ -593,13 +593,19 @@ async function searchPlayersESPN(query, lg) {
     const resp = await fetch(url);
     if (!resp.ok) return [];
     const data = await resp.json();
-    const items = (data.items || []).filter(i => i.id && (i.displayName || i.name));
+    const targetLeague = lg === "NFL" ? "NFL" : "NBA";
+    const items = (data.items || []).filter(i => {
+      if (!i.id || !(i.displayName || i.name)) return false;
+      const leagues = (i.leagueRelationships || []).map(l => l.core?.abbreviation);
+      return leagues.includes(targetLeague);
+    });
     // Enrich with position + years from athlete endpoint (parallel)
     const enriched = await Promise.all(items.map(async (item) => {
       const espnId = String(item.id);
       const name = item.displayName || item.name;
       try {
         const info = await fetchAthleteInfo(espnId, lg);
+        if (!info) return { espnId, name, position: "", debutYear: null, active: false, experience: 0 };
         return { espnId, name: info.name || name, position: info.position || "", debutYear: info.debutYear || null, active: info.active, experience: info.experience || 0 };
       } catch {
         return { espnId, name, position: "", debutYear: null, active: false, experience: 0 };
@@ -620,7 +626,7 @@ async function fetchAthleteInfo(espnId, lg) {
   const url = `${ESPN_CORE}/${sport}/leagues/${leaguePath}/athletes/${espnId}`;
   try {
     const resp = await fetch(url);
-    if (!resp.ok) return { name: "Unknown", imageUrl: "" };
+    if (!resp.ok) return null;
     const data = await resp.json();
     const result = {
       name: data.displayName || "Unknown",
@@ -634,7 +640,7 @@ async function fetchAthleteInfo(espnId, lg) {
     return result;
   } catch (e) {
     console.error("ESPN athlete info failed", e);
-    return { name: "Unknown", imageUrl: "" };
+    return null;
   }
 }
 
@@ -1299,8 +1305,8 @@ async function pickPlayer(idx) {
 
     selectedPlayerData = {
       espnId: p.espnId,
-      name: info.name,
-      imageUrl: info.imageUrl,
+      name: (info && info.name) || p.name,
+      imageUrl: (info && info.imageUrl) || "",
       seasonLog: seasonLog
     };
 
