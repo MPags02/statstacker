@@ -586,6 +586,27 @@ const ESPN_STAT_MAP = {
   "blk_pg": { cat: "defensive", stat: "avgBlocks" },
 };
 
+// ====== PLAYER CSV (fallback for retired players ESPN search misses) ======
+const playerCsv = { NFL: null, NBA: null };
+async function loadPlayerCsv(lg) {
+  if (playerCsv[lg]) return;
+  try {
+    const r = await fetch(`https://www.statpadgame.com/player_data_${lg.toLowerCase()}.csv`);
+    const t = await r.text();
+    const lines = t.trim().split("\n");
+    const out = [];
+    for (let i = 1; i < lines.length; i++) {
+      const c = lines[i].split(",");
+      if (c.length >= 5 && c[0])
+        out.push({ brefId: c[0], name: `${c[1]} ${c[2]}`, fn: c[1], ln: c[2], s: +c[3], e: +c[4] });
+    }
+    playerCsv[lg] = out;
+  } catch(e) {
+    console.error("CSV load failed", e);
+    playerCsv[lg] = [];
+  }
+}
+
 // ====== STATE ======
 let league = "NFL";
 let eraMinYear = 2015;
@@ -1280,6 +1301,8 @@ function giveUp() {
 // ====== SEARCH MODAL ======
 function openSearch(i) {
   if (!game || game.done) return;
+  expandedRow = -1;
+  render();
   activeRow = i;
   selectedPlayerIdx = -1;
   searchResults = [];
@@ -1348,12 +1371,30 @@ async function doSearch(q) {
   const list = document.getElementById("playerList");
   const status = document.getElementById("searchStatus");
   try {
-    const results = await searchPlayersESPN(q, league);
-    searchResults = results;
-    if (!results.length) {
+    // Search ESPN (active players) + CSV fallback (retired players)
+    await loadPlayerCsv(league);
+    const [espnResults] = await Promise.all([searchPlayersESPN(q, league)]);
+
+    // Find CSV matches not already in ESPN results
+    const espnNames = new Set(espnResults.map(r => r.name.toLowerCase()));
+    const ql = q.toLowerCase();
+    const csvMatches = (playerCsv[league] || [])
+      .filter(p => {
+        const full = p.name.toLowerCase();
+        const rev = `${p.ln} ${p.fn}`.toLowerCase();
+        return (full.includes(ql) || rev.includes(ql)) && !espnNames.has(full);
+      })
+      .slice(0, 5)
+      .map(p => ({
+        espnId: null, brefId: p.brefId, name: p.name,
+        position: "", debutYear: p.s, active: false, experience: p.e - p.s
+      }));
+
+    searchResults = [...espnResults, ...csvMatches];
+    if (!searchResults.length) {
       list.innerHTML = ""; status.textContent = "No players found."; return;
     }
-    status.textContent = `${results.length} player${results.length>1?"s":""} found`;
+    status.textContent = `${searchResults.length} player${searchResults.length>1?"s":""} found`;
     renderSearchList();
   } catch (e) {
     console.error("Search error", e);
@@ -1372,14 +1413,34 @@ async function pickPlayer(idx) {
   document.getElementById("errorMsg").textContent = "";
 
   try {
+    // If player came from CSV fallback (no ESPN ID), find their ESPN ID first
+    let espnId = p.espnId;
+    if (!espnId) {
+      // Search ESPN without league filter to find retired player
+      const resp = await fetch(`${ESPN_SEARCH}?query=${encodeURIComponent(p.name)}&limit=5&type=player`);
+      const data = await resp.json();
+      const match = (data.items || []).find(i => {
+        const n = (i.displayName || "").toLowerCase();
+        return n === p.name.toLowerCase();
+      });
+      if (match) {
+        espnId = String(match.id);
+      } else {
+        document.getElementById("searchStatus").textContent = "";
+        document.getElementById("errorMsg").textContent = "Could not find this player's stats. Try a different spelling.";
+        return;
+      }
+      p.espnId = espnId; // cache it
+    }
+
     // Fetch athlete info and season log in parallel
     const [info, seasonLog] = await Promise.all([
-      fetchAthleteInfo(p.espnId, league),
-      fetchSeasonLog(p.espnId, league)
+      fetchAthleteInfo(espnId, league),
+      fetchSeasonLog(espnId, league)
     ]);
 
     selectedPlayerData = {
-      espnId: p.espnId,
+      espnId: espnId,
       name: (info && info.name) || p.name,
       imageUrl: (info && info.imageUrl) || "",
       seasonLog: seasonLog
