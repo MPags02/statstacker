@@ -916,16 +916,16 @@ async function fetchTopAnswersForRow(rowIdx) {
   if (!espnCat) { row.topLoading = false; row.topAnswers = []; render(); return; }
 
   const espnTeamIds = getEspnTeamIds(row, lg);
-  // For ANY/large divisions, limit to 8 random teams
-  const teamIds = espnTeamIds.length > 8 ? shuffle([...espnTeamIds]).slice(0, 8) : espnTeamIds;
+  // For ANY (30+ teams), sample down. For divisions/conferences, keep all teams.
+  const teamIds = espnTeamIds.length > 16 ? shuffle([...espnTeamIds]).slice(0, 12) : espnTeamIds;
 
   // Build (teamId, season) pairs
   const queries = [];
   for (const tid of teamIds) {
     for (let y = row.ys; y <= row.ye; y++) queries.push({ tid, season: y });
   }
-  // Cap queries
-  const toQuery = queries.length > 60 ? shuffle([...queries]).slice(0, 60) : queries;
+  // Only cap for truly huge ranges (ANY + 40+ years). Otherwise query all.
+  const toQuery = queries.length > 200 ? shuffle([...queries]).slice(0, 150) : queries;
 
   // Step 1: Get player names AND ESPN IDs from ESPN leaders
   const playerMap = new Map(); // espnId -> name
@@ -957,6 +957,10 @@ async function fetchTopAnswersForRow(rowIdx) {
       team: row.team,
       score: row.statVal
     });
+    // Also ensure the user's player is in the candidate list for full career lookup
+    if (row.espnId && !playerMap.has(row.espnId)) {
+      playerMap.set(row.espnId, `${row.player.fn} ${row.player.ln}`);
+    }
   }
 
   const athletes = [...playerMap.entries()]; // [espnId, name]
@@ -1477,6 +1481,7 @@ async function submitPick() {
     const lastName = nameParts.slice(1).join(" ") || "";
 
     row.player = { fn: firstName, ln: lastName };
+    row.espnId = espnId;
     row.statVal = statVal;
     row.season = season;
     row.team = matchedTeam;
