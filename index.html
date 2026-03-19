@@ -1277,12 +1277,11 @@ function openSearch(i) {
   document.getElementById("playerList").innerHTML = "";
   document.getElementById("searchStatus").textContent = "Type to search...";
   document.getElementById("searchModal").classList.add("open");
-  // Delay focus slightly for mobile keyboard to open reliably
-  setTimeout(() => {
-    const inp = document.getElementById("searchInput");
-    inp.focus();
-    inp.click(); // triggers keyboard on some mobile browsers
-  }, 150);
+  // Focus must happen synchronously in the user gesture chain for mobile keyboard.
+  // But the modal needs to be visible first. Force a layout reflow between showing and focusing.
+  const inp = document.getElementById("searchInput");
+  inp.offsetHeight; // force reflow so modal is rendered
+  inp.focus();
 }
 
 function closeSearch() {
