@@ -549,6 +549,16 @@ function pick(a) { return a[Math.floor(Math.random()*a.length)]; }
 function randInt(a,b) { return Math.floor(Math.random()*(b-a+1))+a; }
 function shuffle(a) { for(let i=a.length-1;i>0;i--){const j=randInt(0,i);[a[i],a[j]]=[a[j],a[i]];} return a; }
 
+function teamsOverlap(a, b) {
+  // null means ANY — overlaps with everything
+  if (!a || !b) return true;
+  return a.some(t => b.includes(t));
+}
+
+function yearsOverlap(ys1, ye1, ys2, ye2) {
+  return ys1 <= ye2 && ys2 <= ye1;
+}
+
 function genPuzzle(lg) {
   const teams = lg==="NFL" ? NFL_TEAMS : NBA_TEAMS;
   const divs = lg==="NFL" ? NFL_DIVS : NBA_DIVS;
@@ -571,12 +581,19 @@ function genPuzzle(lg) {
       used.add(t); label = t; validTeams = [t];
     }
 
-    let ys, ye;
-    const yr = Math.random();
-    if (yr < 0.12) { const y=randInt(2019,2025); ys=y; ye=y; }
-    else if (yr < 0.35) { ys=randInt(2012,2020); ye=2025; }
-    else if (yr < 0.65) { ys=randInt(2000,2012); ye=2025; }
-    else { ys=1980; ye=2025; }
+    // Generate year range that doesn't overlap with any existing row sharing team coverage
+    let ys, ye, attempts = 0;
+    do {
+      const yr = Math.random();
+      if (yr < 0.12) { const y=randInt(2019,2025); ys=y; ye=y; }
+      else if (yr < 0.35) { ys=randInt(2012,2020); ye=2025; }
+      else if (yr < 0.65) { ys=randInt(2000,2012); ye=2025; }
+      else { ys=1980; ye=2025; }
+      attempts++;
+    } while (
+      attempts < 20 &&
+      rows.some(prev => teamsOverlap(validTeams, prev.validTeams) && yearsOverlap(ys, ye, prev.ys, prev.ye))
+    );
 
     rows.push({ label, validTeams, ys, ye, player:null, data:null, statVal:null, season:null, team:null, imgUrl:null, topAnswers:null, topLoading:false });
   }
