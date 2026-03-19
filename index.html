@@ -234,10 +234,66 @@
   .rules-list { list-style: decimal; padding-left: 18px; }
   .rules-list li { margin-bottom: 8px; font-size: 13px; color: #bbb; line-height: 1.5; }
 
+  /* ── Animations ── */
+  /* Row slide-in on new game */
+  .grid-row { animation: rowSlideIn 0.35s ease-out both; }
+  .grid-row:nth-child(1) { animation-delay: 0s; }
+  .grid-row:nth-child(2) { animation-delay: 0.06s; }
+  .grid-row:nth-child(3) { animation-delay: 0.12s; }
+  .grid-row:nth-child(4) { animation-delay: 0.18s; }
+  .grid-row:nth-child(5) { animation-delay: 0.24s; }
+  @keyframes rowSlideIn {
+    from { opacity: 0; transform: translateX(-20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  /* Player cell fill animation */
+  .cell-player.filled.just-filled {
+    animation: cellReveal 0.5s ease-out;
+  }
+  @keyframes cellReveal {
+    0% { transform: scale(0.8); opacity: 0; }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* Tier color flash */
+  .cell-player.tier-flash {
+    animation: tierFlash 0.6s ease-out;
+  }
+  @keyframes tierFlash {
+    0% { filter: brightness(2.5); }
+    100% { filter: brightness(1); }
+  }
+
+  /* Stat number countup placeholder */
+  .player-stat.counting { opacity: 1; }
+
+  /* Top answers slide down */
+  .top-answers.open {
+    animation: slideDown 0.25s ease-out;
+  }
+  @keyframes slideDown {
+    from { opacity: 0; max-height: 0; padding-top: 0; padding-bottom: 0; }
+    to { opacity: 1; max-height: 300px; }
+  }
+
+  /* Add button pulse */
+  .cell-add:not(.done) { animation: addPulse 2s ease-in-out infinite; }
+  @keyframes addPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(76,175,80,0.3); }
+    50% { box-shadow: 0 0 0 6px rgba(76,175,80,0); }
+  }
+
   /* Conclusion */
   .conclusion {
     max-width: 720px; margin: 0 auto 20px; padding: 24px 20px;
     background: #2a2a28; border-radius: 10px; text-align: center;
+    animation: conclusionIn 0.5s ease-out;
+  }
+  @keyframes conclusionIn {
+    from { opacity: 0; transform: scale(0.9) translateY(20px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
   }
   .conclusion h2 { font-size: 20px; color: #fff; font-weight: 700; margin-bottom: 16px; }
   .conclusion-pct { font-size: 56px; font-weight: 800; margin: 8px 0; }
@@ -252,6 +308,9 @@
   }
   .conclusion-detail .val { font-weight: 700; color: #fff; }
   .conclusion-loading { font-size: 13px; color: #666; margin-top: 8px; }
+
+  /* Confetti canvas */
+  #confetti { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 999; }
 
   @media (max-width: 600px) {
     .grid-row { grid-template-columns: 70px 80px 1fr 85px; }
@@ -334,7 +393,81 @@
   </div>
 </div>
 
+<canvas id="confetti"></canvas>
+
 <script>
+// ====== ANIMATIONS ======
+let lastFilledRow = -1; // track which row was just filled for animation
+
+function animateCountUp(el, target, stat) {
+  const isFtp = stat.cat === "ftp";
+  const isAvg = stat.mode === "avg";
+  const duration = 600;
+  const start = performance.now();
+  const from = 0;
+
+  function step(now) {
+    const t = Math.min((now - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
+    const current = from + (target - from) * eased;
+    if (isFtp) el.textContent = (current * 100).toFixed(1) + "%";
+    else if (isAvg) el.textContent = current.toFixed(1);
+    else el.textContent = Math.round(current).toLocaleString();
+    if (t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+function launchConfetti() {
+  const canvas = document.getElementById("confetti");
+  const ctx = canvas.getContext("2d");
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const particles = [];
+  const colors = ["#4CAF50","#ffc107","#00bcd4","#ff5722","#e91e63","#9c27b0","#fff"];
+  for (let i = 0; i < 120; i++) {
+    particles.push({
+      x: Math.random() * canvas.width,
+      y: -10 - Math.random() * 40,
+      w: 4 + Math.random() * 6,
+      h: 6 + Math.random() * 8,
+      vx: (Math.random() - 0.5) * 4,
+      vy: 2 + Math.random() * 4,
+      rot: Math.random() * 360,
+      vr: (Math.random() - 0.5) * 10,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      life: 1,
+    });
+  }
+
+  let frame = 0;
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    let alive = false;
+    for (const p of particles) {
+      if (p.life <= 0) continue;
+      alive = true;
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.1;
+      p.rot += p.vr;
+      p.life -= 0.008;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot * Math.PI / 180);
+      ctx.globalAlpha = Math.max(0, p.life);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      ctx.restore();
+    }
+    frame++;
+    if (alive && frame < 180) requestAnimationFrame(draw);
+    else ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+  requestAnimationFrame(draw);
+}
+
 // ====== CONFIG ======
 const API_BASE = "https://statpad-mu.vercel.app";
 
@@ -710,7 +843,8 @@ function render() {
     if (row.player) {
       const tier = getTier(row);
       const imgSrc = row.imgUrl || "";
-      html += `<div class="cell cell-player filled ${tier}" data-expand="${i}">`;
+      const justFilled = (lastFilledRow === i) ? "just-filled tier-flash" : "";
+      html += `<div class="cell cell-player filled ${tier} ${justFilled}" data-expand="${i}">`;
       if (imgSrc) html += `<img class="player-img" src="${imgSrc}" onerror="this.style.display='none'">`;
       html += `<div class="player-name">${esc(row.player.fn)} ${esc(row.player.ln)}</div>`;
       html += `<div class="player-stat">${fmtStat(row.statVal, game.stat)}</div>`;
@@ -817,6 +951,11 @@ function render() {
 
   c.innerHTML = html;
   updateScores();
+  // Clear animation trigger after a frame so it doesn't replay on re-render
+  if (lastFilledRow >= 0) {
+    const filled = lastFilledRow;
+    lastFilledRow = -1;
+  }
 }
 
 function esc(s) {
@@ -1038,10 +1177,47 @@ async function submitPick() {
     row.team = sr.team || "";
     row.imgUrl = data.image_url || "";
     row.topAnswers = null; // will be fetched on expand
+    lastFilledRow = savedRow;
 
     if (game.rows.every(r => r.player)) game.done = true;
     closeSearch();
     render();
+
+    // Animate the stat countup on the just-filled cell
+    setTimeout(() => {
+      const statEl = document.querySelector(`.grid-row:nth-child(${savedRow + 1}) .player-stat`);
+      if (statEl) animateCountUp(statEl, row.statVal, game.stat);
+    }, 50);
+
+    // Confetti on game completion with great score
+    if (game.done) {
+      setTimeout(() => {
+        const allTopReady = game.rows.every(r => r.topAnswers?.length > 0);
+        if (allTopReady) {
+          let best = 0, yours = 0;
+          game.rows.forEach(r => {
+            if (r.statVal != null && r.player.fn !== "Give") yours += r.statVal;
+            if (r.topAnswers?.[0]) best += r.topAnswers[0].score;
+          });
+          if (best > 0 && (yours / best) >= 0.9) launchConfetti();
+        } else {
+          // Check again when top answers arrive
+          const checkInterval = setInterval(() => {
+            const ready = game.rows.every(r => r.topAnswers?.length > 0);
+            if (ready) {
+              clearInterval(checkInterval);
+              let best = 0, yours = 0;
+              game.rows.forEach(r => {
+                if (r.statVal != null && r.player.fn !== "Give") yours += r.statVal;
+                if (r.topAnswers?.[0]) best += r.topAnswers[0].score;
+              });
+              if (best > 0 && (yours / best) >= 0.9) launchConfetti();
+              render(); // re-render to show conclusion
+            }
+          }, 500);
+        }
+      }, 600);
+    }
 
     // Auto-start background fetch for top answers
     fetchTopAnswersForRow(savedRow);
