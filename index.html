@@ -127,11 +127,10 @@
 
   /* ── Top Answers Dropdown ── */
   .top-answers {
-    display: none; background: #2a2a28; border-radius: 5px;
-    margin-top: -1px; margin-bottom: 3px; padding: 8px 12px;
+    background: #2a2a28; border-radius: 5px;
+    margin-top: -1px; margin-bottom: 3px; padding-left: 12px; padding-right: 12px;
     grid-column: 1 / -1;
   }
-  .top-answers.open { display: block; }
   .top-answers h4 {
     font-size: 11px; color: #888; text-transform: uppercase;
     letter-spacing: 1px; margin-bottom: 6px; font-weight: 600;
@@ -235,47 +234,28 @@
   .rules-list li { margin-bottom: 8px; font-size: 13px; color: #bbb; line-height: 1.5; }
 
   /* ── Animations ── */
-  /* Row slide-in on new game */
-  .grid-row { animation: rowSlideIn 0.35s ease-out both; }
-  .grid-row:nth-child(1) { animation-delay: 0s; }
-  .grid-row:nth-child(2) { animation-delay: 0.06s; }
-  .grid-row:nth-child(3) { animation-delay: 0.12s; }
-  .grid-row:nth-child(4) { animation-delay: 0.18s; }
-  .grid-row:nth-child(5) { animation-delay: 0.24s; }
+  /* Row slide-in — only on initial load, applied via JS class */
+  .grid-row.animate-in { animation: rowSlideIn 0.35s ease-out both; }
+  .grid-row.animate-in:nth-child(1) { animation-delay: 0s; }
+  .grid-row.animate-in:nth-child(2) { animation-delay: 0.06s; }
+  .grid-row.animate-in:nth-child(3) { animation-delay: 0.12s; }
+  .grid-row.animate-in:nth-child(4) { animation-delay: 0.18s; }
+  .grid-row.animate-in:nth-child(5) { animation-delay: 0.24s; }
   @keyframes rowSlideIn {
     from { opacity: 0; transform: translateX(-20px); }
     to { opacity: 1; transform: translateX(0); }
   }
 
-  /* Player cell fill animation */
-  .cell-player.filled.just-filled {
-    animation: cellReveal 0.5s ease-out;
+  /* Top answers expand/collapse */
+  .top-answers {
+    overflow: hidden; max-height: 0; opacity: 0;
+    transition: max-height 0.3s ease-out, opacity 0.25s ease-out, padding 0.3s ease-out;
+    padding-top: 0; padding-bottom: 0;
   }
-  @keyframes cellReveal {
-    0% { transform: scale(0.8); opacity: 0; }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); opacity: 1; }
-  }
-
-  /* Tier color flash */
-  .cell-player.tier-flash {
-    animation: tierFlash 0.6s ease-out;
-  }
-  @keyframes tierFlash {
-    0% { filter: brightness(2.5); }
-    100% { filter: brightness(1); }
-  }
-
-  /* Stat number countup placeholder */
-  .player-stat.counting { opacity: 1; }
-
-  /* Top answers slide down */
   .top-answers.open {
-    animation: slideDown 0.25s ease-out;
-  }
-  @keyframes slideDown {
-    from { opacity: 0; max-height: 0; padding-top: 0; padding-bottom: 0; }
-    to { opacity: 1; max-height: 300px; }
+    max-height: 400px; opacity: 1;
+    padding-top: 8px; padding-bottom: 8px;
+    display: block;
   }
 
   /* Add button pulse */
@@ -408,7 +388,8 @@
 
 <script>
 // ====== ANIMATIONS ======
-let lastFilledRow = -1; // track which row was just filled for animation
+let lastFilledRow = -1;
+let animateNewGame = false; // true only on first render of a new game
 
 function animateCountUp(el, target, stat) {
   const isFtp = stat.cat === "ftp";
@@ -840,7 +821,8 @@ function render() {
     const divLabel = (NFL_DIVS[row.label] || NBA_DIVS[row.label]) ? row.label : "";
     const teamName = NFL_TEAMS[row.label] || NBA_TEAMS[row.label] || "";
 
-    html += `<div class="grid-row">`;
+    const rowAnimClass = animateNewGame ? "animate-in" : "";
+    html += `<div class="grid-row ${rowAnimClass}">`;
     // Team cell
     html += `<div class="cell cell-team">`;
     if (logo) html += `<img src="${logo}" alt="${row.label}" onerror="this.style.display='none'">`;
@@ -860,8 +842,7 @@ function render() {
     if (row.player) {
       const tier = getTier(row);
       const imgSrc = row.imgUrl || "";
-      const justFilled = (lastFilledRow === i) ? "just-filled tier-flash" : "";
-      html += `<div class="cell cell-player filled ${tier} ${justFilled}" data-expand="${i}">`;
+      html += `<div class="cell cell-player filled ${tier}" data-expand="${i}">`;
       if (imgSrc) html += `<img class="player-img" src="${imgSrc}" onerror="this.style.display='none'">`;
       html += `<div class="player-name">${esc(row.player.fn)} ${esc(row.player.ln)}</div>`;
       html += `<div class="player-stat">${fmtStat(row.statVal, game.stat)}</div>`;
@@ -879,9 +860,10 @@ function render() {
     }
     html += `</div>`;
 
-    // Top answers dropdown
-    if (row.player && expandedRow === i) {
-      html += `<div class="top-answers open" style="grid-column:1/-1">`;
+    // Top answers dropdown (always in DOM for smooth transition)
+    if (row.player) {
+      const isOpen = expandedRow === i;
+      html += `<div class="top-answers ${isOpen ? 'open' : ''}" style="grid-column:1/-1">`;
       if (row.topLoading) {
         html += `<h4><span class="spinner"></span> Finding best answers for this slot...</h4>`;
       } else if (row.topAnswers && row.topAnswers.length > 0) {
@@ -895,7 +877,6 @@ function render() {
           html += `<span class="top-answer-score">${fmtStat(ta.score, game.stat)}</span>`;
           html += `</div>`;
         });
-        // Show user's pick if not in top 5
         const userInTop = row.topAnswers.some(ta =>
           ta.name === `${row.player.fn} ${row.player.ln}` && ta.season === row.season
         );
@@ -981,11 +962,7 @@ function render() {
 
   c.innerHTML = html;
   updateScores();
-  // Clear animation trigger after a frame so it doesn't replay on re-render
-  if (lastFilledRow >= 0) {
-    const filled = lastFilledRow;
-    lastFilledRow = -1;
-  }
+  animateNewGame = false;
 }
 
 function esc(s) {
@@ -1049,6 +1026,7 @@ async function newGame() {
   expandedRow = -1;
   guesses = 0;
   statsCache = {};
+  animateNewGame = true;
   await loadPlayers(league);
   game = genPuzzle(league);
   document.getElementById("statCategory").textContent = game.stat.display;
