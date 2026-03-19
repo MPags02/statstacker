@@ -1149,6 +1149,7 @@ async function submitPick() {
   if (selectedPlayerIdx < 0 || activeRow===null || submitting) return;
   const sp = searchResults[selectedPlayerIdx];
   if (!sp) return;
+  expandedRow = -1;
   submitting = true;
   const btn = document.getElementById("subBtn");
   btn.disabled = true;
