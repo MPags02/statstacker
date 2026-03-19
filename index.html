@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>StatStacker</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -258,12 +258,7 @@
     display: block;
   }
 
-  /* Add button pulse */
-  .cell-add:not(.done) { animation: addPulse 2s ease-in-out infinite; }
-  @keyframes addPulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(76,175,80,0.3); }
-    50% { box-shadow: 0 0 0 6px rgba(76,175,80,0); }
-  }
+  /* Add button - no animation */
 
   /* Conclusion */
   .conclusion {
