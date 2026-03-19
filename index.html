@@ -608,6 +608,7 @@ let searchResults = [];      // current filtered player list (ESPN results)
 let submitting = false;
 let guesses = 0;
 let expandedRow = -1;
+let renderGen = 0; // incremented on user-initiated renders to prevent stale background renders
 let selectedPlayerData = null; // { espnId, name, imageUrl, seasonLog }
 
 // Simple ESPN API cache
@@ -938,12 +939,12 @@ async function fetchTopAnswersForRow(rowIdx) {
   const row = game.rows[rowIdx];
   if (!game) return;
   row.topLoading = true;
-  render();
+  // Don't render here — avoid interrupting the UI during background fetch
 
   const lg = game.lg;
   const stat = game.stat;
   const espnCat = STAT_TO_ESPN[stat.cat];
-  if (!espnCat) { row.topLoading = false; row.topAnswers = []; render(); return; }
+  if (!espnCat) { row.topLoading = false; row.topAnswers = []; return; }
 
   const useLeagueWide = !row.validTeams || row.validTeams.length > 8;
 
@@ -1049,7 +1050,9 @@ async function fetchTopAnswersForRow(rowIdx) {
   }
   row.topAnswers = unique.sort((a,b) => b.score - a.score).slice(0, 5);
   row.topLoading = false;
-  render();
+  // Only re-render if this row is currently expanded (user is waiting for it)
+  // or if game is done (conclusion needs top answers to calculate percentage)
+  if (expandedRow === rowIdx || (game && game.done)) render();
 }
 
 // ====== RENDER ======
