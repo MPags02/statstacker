@@ -771,16 +771,23 @@ function genPuzzle(lg) {
     }
 
     // Generate year range that doesn't overlap with any existing row sharing team coverage
+    const yearOptions = [
+      () => { const y=randInt(2019,2025); return [y,y]; },           // single recent year
+      () => { const y=randInt(2005,2018); return [y,y]; },           // single older year
+      () => [randInt(2015,2020), 2025],                               // recent range
+      () => [randInt(2005,2014), randInt(2014,2019)],                 // mid range
+      () => [randInt(2000,2010), 2025],                               // wide range
+      () => [randInt(1990,2000), randInt(2005,2015)],                 // historical range
+      () => [1980, randInt(2000,2010)],                               // early era
+      () => [1980, 2025],                                             // full range
+    ];
     let ys, ye, attempts = 0;
     do {
-      const yr = Math.random();
-      if (yr < 0.12) { const y=randInt(2019,2025); ys=y; ye=y; }
-      else if (yr < 0.35) { ys=randInt(2012,2020); ye=2025; }
-      else if (yr < 0.65) { ys=randInt(2000,2012); ye=2025; }
-      else { ys=1980; ye=2025; }
+      const gen = yearOptions[attempts < 8 ? randInt(0, yearOptions.length-1) : attempts % yearOptions.length];
+      [ys, ye] = gen();
       attempts++;
     } while (
-      attempts < 20 &&
+      attempts < 30 &&
       rows.some(prev => teamsOverlap(validTeams, prev.validTeams) && yearsOverlap(ys, ye, prev.ys, prev.ye))
     );
 
