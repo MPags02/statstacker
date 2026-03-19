@@ -587,16 +587,25 @@ function espnTeamIdToAbbr(teamId, lg) {
 
 async function searchPlayersESPN(query, lg) {
   const sport = lg === "NFL" ? "football" : "basketball";
+  const leaguePath = lg === "NFL" ? "nfl" : "nba";
   const url = `${ESPN_SEARCH}?query=${encodeURIComponent(query)}&limit=10&type=player&sport=${sport}`;
   try {
     const resp = await fetch(url);
     if (!resp.ok) return [];
     const data = await resp.json();
-    const items = data.items || [];
-    return items.map(item => ({
-      espnId: String(item.id),
-      name: item.displayName || item.name || ""
-    })).filter(p => p.espnId && p.name);
+    const items = (data.items || []).filter(i => i.id && (i.displayName || i.name));
+    // Enrich with position + years from athlete endpoint (parallel)
+    const enriched = await Promise.all(items.map(async (item) => {
+      const espnId = String(item.id);
+      const name = item.displayName || item.name;
+      try {
+        const info = await fetchAthleteInfo(espnId, lg);
+        return { espnId, name: info.name || name, position: info.position || "", debutYear: info.debutYear || null, active: info.active, experience: info.experience || 0 };
+      } catch {
+        return { espnId, name, position: "", debutYear: null, active: false, experience: 0 };
+      }
+    }));
+    return enriched;
   } catch (e) {
     console.error("ESPN search failed", e);
     return [];
@@ -615,7 +624,11 @@ async function fetchAthleteInfo(espnId, lg) {
     const data = await resp.json();
     const result = {
       name: data.displayName || "Unknown",
-      imageUrl: (data.headshot && data.headshot.href) || ""
+      imageUrl: (data.headshot && data.headshot.href) || "",
+      position: (data.position && data.position.abbreviation) || "",
+      debutYear: data.debutYear || null,
+      active: !!data.active,
+      experience: (data.experience && data.experience.years) || 0
     };
     espnCache[cacheKey] = result;
     return result;
@@ -1248,10 +1261,19 @@ async function doSearch(q) {
       list.innerHTML = ""; status.textContent = "No players found."; return;
     }
     status.textContent = `${results.length} player${results.length>1?"s":""} found`;
-    list.innerHTML = results.map((p, idx) =>
-      `<li class="player-list-item" data-pidx="${idx}">
-        <span class="pname">${esc(p.name)}</span></li>`
-    ).join("");
+    list.innerHTML = results.map((p, idx) => {
+      let detail = "";
+      const endYear = p.active ? "present" : String(p.debutYear + p.experience);
+      if (league === "NFL" && p.position) {
+        detail = p.position;
+        if (p.debutYear) detail += ` · ${p.debutYear}-${endYear}`;
+      } else if (p.debutYear) {
+        detail = `${p.debutYear}-${endYear}`;
+      }
+      return `<li class="player-list-item" data-pidx="${idx}">
+        <span class="pname">${esc(p.name)}</span>
+        <span class="pyears">${esc(detail)}</span></li>`;
+    }).join("");
   } catch (e) {
     console.error("Search error", e);
     status.textContent = "Search failed. Try again.";
