@@ -15,14 +15,14 @@
   /* ── Header ── */
   .header {
     display: flex; justify-content: space-between; align-items: center;
-    padding: 14px 20px; background: #1e1e1c;
+    padding: 10px 16px; background: #1e1e1c; flex-wrap: wrap; gap: 8px;
   }
   .header h1 {
     font-size: 20px; font-weight: 700; color: #e0e0e0;
     letter-spacing: -0.5px;
   }
   .header h1 span { color: #4CAF50; }
-  .header-controls { display: flex; gap: 8px; align-items: center; }
+  .header-controls { display: flex; gap: 6px; align-items: center; flex-wrap: nowrap; }
   .league-btn {
     padding: 7px 16px; border: 2px solid #444; background: transparent;
     color: #aaa; border-radius: 6px; cursor: pointer; font-size: 13px;
@@ -315,12 +315,29 @@
   #confetti { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 999; }
 
   @media (max-width: 600px) {
-    .grid-row { grid-template-columns: 70px 80px 1fr 85px; }
-    .stat-category { font-size: 30px; }
-    .cell { min-height: 68px; }
-    .cell-team img { width: 40px; height: 40px; }
-    .scores-row { gap: 30px; }
-    .header-controls { flex-wrap: wrap; }
+    .header { padding: 8px 10px; }
+    .header h1 { font-size: 17px; }
+    .header-controls { gap: 4px; }
+    .league-btn { padding: 5px 10px; font-size: 11px; }
+    .era-select { padding: 5px 20px 5px 6px; font-size: 11px; }
+    .new-game-btn { padding: 5px 10px; font-size: 11px; }
+    .grid-row { grid-template-columns: 60px 72px 1fr 75px; }
+    .stat-category { font-size: 26px; }
+    .score-value { font-size: 24px; }
+    .scores-row { gap: 30px; margin-top: 6px; }
+    .cell { min-height: 64px; padding: 4px; }
+    .cell-team img { width: 36px; height: 36px; }
+    .cell-team .team-label { font-size: 8px; }
+    .cell-year .year-main { font-size: 14px; }
+    .cell-add { font-size: 11px; }
+    .cell-add .plus { font-size: 18px; }
+    .player-name { font-size: 10px; }
+    .player-stat { font-size: 16px; }
+    .player-meta { font-size: 9px; }
+    .bottom-bar { gap: 8px; padding: 12px; }
+    .bottom-btn { padding: 6px 14px; font-size: 11px; }
+    .game-header { padding: 12px 12px 6px; }
+    .grid-container { padding: 0 6px; }
   }
 </style>
 </head>
@@ -375,7 +392,7 @@
       <button class="modal-close" onclick="closeSearch()">&times;</button>
     </div>
     <div class="modal-body">
-      <input type="text" class="search-input" id="searchInput" placeholder="Search for a player..." autocomplete="off">
+      <input type="search" class="search-input" id="searchInput" placeholder="Search for a player..." autocomplete="off" inputmode="search">
       <div id="yearSelectArea"></div>
       <div class="error-msg" id="errorMsg"></div>
       <div id="searchStatus" class="search-status"></div>
@@ -1274,7 +1291,12 @@ function openSearch(i) {
   document.getElementById("playerList").innerHTML = "";
   document.getElementById("searchStatus").textContent = "Type to search...";
   document.getElementById("searchModal").classList.add("open");
-  setTimeout(() => document.getElementById("searchInput").focus(), 100);
+  // Delay focus slightly for mobile keyboard to open reliably
+  setTimeout(() => {
+    const inp = document.getElementById("searchInput");
+    inp.focus();
+    inp.click(); // triggers keyboard on some mobile browsers
+  }, 150);
 }
 
 function closeSearch() {
