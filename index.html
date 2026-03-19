@@ -1534,8 +1534,22 @@ async function submitPick() {
     row.season = season;
     row.team = matchedTeam;
     row.imgUrl = selectedPlayerData.imageUrl;
-    row.topAnswers = null; // will be fetched on expand
     lastFilledRow = savedRow;
+
+    // If top answers were already prefetched, inject user's pick and re-sort
+    if (row.topAnswers && row.topAnswers.length > 0) {
+      const userEntry = { name: `${firstName} ${lastName}`, season, team: matchedTeam, score: statVal };
+      const exists = row.topAnswers.some(t => t.name === userEntry.name && t.season === userEntry.season);
+      if (!exists) {
+        row.topAnswers.push(userEntry);
+        row.topAnswers.sort((a, b) => b.score - a.score);
+        row.topAnswers = row.topAnswers.slice(0, 5);
+      }
+    }
+    // If not prefetched yet, kick off a fetch (topAnswers stays null, tier will show once ready)
+    if (!row.topAnswers && !row.topLoading) {
+      fetchTopAnswersForRow(savedRow);
+    }
 
     if (game.rows.every(r => r.player)) game.done = true;
     closeSearch();
@@ -1579,8 +1593,6 @@ async function submitPick() {
       }, 600);
     }
 
-    // Auto-start background fetch for top answers
-    fetchTopAnswersForRow(savedRow);
   } catch(e) {
     console.error(e);
     document.getElementById("errorMsg").textContent = "Error fetching stats. Try again.";
