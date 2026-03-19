@@ -1543,7 +1543,9 @@ async function submitPick() {
 
     // Animate the stat countup on the just-filled cell
     setTimeout(() => {
-      const statEl = document.querySelector(`.grid-row:nth-child(${savedRow + 1}) .player-stat`);
+      const allRows = document.querySelectorAll('.grid-row');
+      const targetRow = allRows[savedRow];
+      const statEl = targetRow?.querySelector('.player-stat');
       if (statEl) animateCountUp(statEl, row.statVal, game.stat);
     }, 50);
 
