@@ -586,24 +586,16 @@ const ESPN_STAT_MAP = {
   "blk_pg": { cat: "defensive", stat: "avgBlocks" },
 };
 
-// ====== PLAYER CSV (fallback for retired players ESPN search misses) ======
-const playerCsv = { NFL: null, NBA: null };
-async function loadPlayerCsv(lg) {
-  if (playerCsv[lg]) return;
+// ====== PLAYER DATABASE (loaded from JSON files) ======
+const playerDb = { NFL: null, NBA: null };
+async function loadPlayerDb(lg) {
+  if (playerDb[lg]) return;
   try {
-    const r = await fetch(`https://www.statpadgame.com/player_data_${lg.toLowerCase()}.csv`);
-    const t = await r.text();
-    const lines = t.trim().split("\n");
-    const out = [];
-    for (let i = 1; i < lines.length; i++) {
-      const c = lines[i].split(",");
-      if (c.length >= 5 && c[0])
-        out.push({ brefId: c[0], name: `${c[1]} ${c[2]}`, fn: c[1], ln: c[2], s: +c[3], e: +c[4] });
-    }
-    playerCsv[lg] = out;
+    const r = await fetch(`${lg.toLowerCase()}_players.json`);
+    playerDb[lg] = await r.json();
   } catch(e) {
-    console.error("CSV load failed", e);
-    playerCsv[lg] = [];
+    console.error("Player DB load failed", e);
+    playerDb[lg] = [];
   }
 }
 
@@ -646,42 +638,12 @@ function espnTeamIdToAbbr(teamId, lg) {
 
 async function searchPlayersESPN(query, lg) {
   const sport = lg === "NFL" ? "football" : "basketball";
-  const leaguePath = lg === "NFL" ? "nfl" : "nba";
-  const url = `${ESPN_SEARCH}?query=${encodeURIComponent(query)}&limit=10&type=player&sport=${sport}`;
+  const url = `${ESPN_SEARCH}?query=${encodeURIComponent(query)}&limit=5&type=player&sport=${sport}`;
   try {
     const resp = await fetch(url);
     if (!resp.ok) return [];
     const data = await resp.json();
-    const targetLeague = lg === "NFL" ? "NFL" : "NBA";
-    const items = (data.items || []).filter(i => {
-      if (!i.id || !(i.displayName || i.name)) return false;
-      const leagues = (i.leagueRelationships || []).map(l => l.core?.abbreviation);
-      return leagues.includes(targetLeague);
-    });
-    // Enrich with position + years from athlete endpoint (parallel)
-    // Show results immediately, then enrich with position/years in background
-    const basic = items.map(item => ({
-      espnId: String(item.id),
-      name: item.displayName || item.name,
-      position: "", debutYear: null, active: false, experience: 0
-    }));
-    // Fire enrichment in background — updates searchResults in place and re-renders list
-    Promise.all(basic.map(async (p, idx) => {
-      try {
-        const info = await fetchAthleteInfo(p.espnId, lg);
-        if (info) {
-          p.name = info.name || p.name;
-          p.position = info.position || "";
-          p.debutYear = info.debutYear || null;
-          p.active = info.active;
-          p.experience = info.experience || 0;
-        }
-      } catch {}
-    })).then(() => {
-      // Re-render the list with enriched data if still showing these results
-      if (searchResults === basic) renderSearchList();
-    });
-    return basic;
+    return (data.items || []).map(i => ({ espnId: String(i.id), name: i.displayName || "" })).filter(p => p.name);
   } catch (e) {
     console.error("ESPN search failed", e);
     return [];
@@ -1261,11 +1223,12 @@ function switchLeague(lg) {
   newGame();
 }
 
-function newGame() {
+async function newGame() {
   expandedRow = -1;
   guesses = 0;
   Object.keys(espnCache).forEach(k => { if (k.startsWith("stats:")) delete espnCache[k]; });
   animateNewGame = true;
+  await loadPlayerDb(league);
   game = genPuzzle(league);
   document.getElementById("statCategory").textContent = game.stat.display;
   document.getElementById("statType").textContent = game.stat.type;
@@ -1351,14 +1314,11 @@ function renderSearchList() {
   const list = document.getElementById("playerList");
   list.innerHTML = searchResults.map((p, idx) => {
     let detail = "";
-    if (p.debutYear) {
-      const endYear = p.active ? "present" : String(p.debutYear + p.experience);
-      if (league === "NFL" && p.position) {
-        detail = `${p.position} · ${p.debutYear}-${endYear}`;
-      } else {
-        detail = `${p.debutYear}-${endYear}`;
-      }
-    } else if (league === "NFL" && p.position) {
+    if (p.position && p.debutYear) {
+      detail = p.active ? `${p.position} · ${p.debutYear}-pres.` : `${p.position} · from ${p.debutYear}`;
+    } else if (p.debutYear) {
+      detail = p.active ? `${p.debutYear}-pres.` : `from ${p.debutYear}`;
+    } else if (p.position) {
       detail = p.position;
     }
     return `<li class="player-list-item" data-pidx="${idx}">
@@ -1371,26 +1331,19 @@ async function doSearch(q) {
   const list = document.getElementById("playerList");
   const status = document.getElementById("searchStatus");
   try {
-    // Search ESPN (active players) + CSV fallback (retired players)
-    await loadPlayerCsv(league);
-    const [espnResults] = await Promise.all([searchPlayersESPN(q, league)]);
-
-    // Find CSV matches not already in ESPN results
-    const espnNames = new Set(espnResults.map(r => r.name.toLowerCase()));
+    await loadPlayerDb(league);
     const ql = q.toLowerCase();
-    const csvMatches = (playerCsv[league] || [])
-      .filter(p => {
-        const full = p.name.toLowerCase();
-        const rev = `${p.ln} ${p.fn}`.toLowerCase();
-        return (full.includes(ql) || rev.includes(ql)) && !espnNames.has(full);
-      })
-      .slice(0, 5)
+    const db = playerDb[league] || [];
+
+    // Search local player database (instant, includes all retired + active)
+    searchResults = db
+      .filter(p => p.n.toLowerCase().includes(ql))
+      .slice(0, 15)
       .map(p => ({
-        espnId: null, brefId: p.brefId, name: p.name,
-        position: "", debutYear: p.s, active: false, experience: p.e - p.s
+        espnId: p.id, name: p.n, position: p.p || "",
+        debutYear: p.d || null, active: p.a, experience: 0
       }));
 
-    searchResults = [...espnResults, ...csvMatches];
     if (!searchResults.length) {
       list.innerHTML = ""; status.textContent = "No players found."; return;
     }
@@ -1413,25 +1366,7 @@ async function pickPlayer(idx) {
   document.getElementById("errorMsg").textContent = "";
 
   try {
-    // If player came from CSV fallback (no ESPN ID), find their ESPN ID first
-    let espnId = p.espnId;
-    if (!espnId) {
-      // Search ESPN without league filter to find retired player
-      const resp = await fetch(`${ESPN_SEARCH}?query=${encodeURIComponent(p.name)}&limit=5&type=player`);
-      const data = await resp.json();
-      const match = (data.items || []).find(i => {
-        const n = (i.displayName || "").toLowerCase();
-        return n === p.name.toLowerCase();
-      });
-      if (match) {
-        espnId = String(match.id);
-      } else {
-        document.getElementById("searchStatus").textContent = "";
-        document.getElementById("errorMsg").textContent = "Could not find this player's stats. Try a different spelling.";
-        return;
-      }
-      p.espnId = espnId; // cache it
-    }
+    const espnId = p.espnId;
 
     // Fetch athlete info and season log in parallel
     const [info, seasonLog] = await Promise.all([
