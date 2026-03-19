@@ -505,6 +505,8 @@ const NFL_STATS = [
   { cat:"rush_ypg", display:"Rush YPG", type:"RUSHING", mode:"avg" },
   { cat:"scrim_yds", display:"Scrimmage Yds", type:"SCRIMMAGE", mode:"sum" },
   { cat:"tot_td", display:"Total TDs", type:"RUSH & REC", mode:"sum" },
+  { cat:"qbr", display:"Passer Rating", type:"PASSING", mode:"avg" },
+  { cat:"pass_int", display:"Interceptions", type:"DEFENSE", mode:"sum" },
 ];
 
 const NBA_STATS = [
@@ -512,6 +514,9 @@ const NBA_STATS = [
   { cat:"ast_tot", display:"Assists", type:"", mode:"sum" },
   { cat:"three_tot", display:"3PM", type:"", mode:"sum" },
   { cat:"ftp", display:"FT%", type:"", mode:"avg" },
+  { cat:"reb_pg", display:"Rebounds", type:"", mode:"avg" },
+  { cat:"stl_pg", display:"Steals", type:"", mode:"avg" },
+  { cat:"blk_pg", display:"Blocks", type:"", mode:"avg" },
 ];
 
 const MULTI_TEAM = new Set(["TOT","2TM","3TM","4TM","5TM"]);
@@ -690,10 +695,11 @@ const ESPN_NFL_IDS = {"ARI":22,"ATL":1,"BAL":33,"BUF":2,"CAR":29,"CHI":3,"CIN":4
 const STAT_TO_ESPN = {
   // NBA
   "pts_pg":"pointsPerGame", "ast_tot":"assistsPerGame", "three_tot":"3PointMadePerGame", "ftp":"fieldGoalPercentage",
+  "reb_pg":"reboundsPerGame", "stl_pg":"stealsPerGame", "blk_pg":"blocksPerGame",
   // NFL
   "pass_yds":"passingYards", "pass_td":"passingTouchdowns", "rush_yds":"rushingYards", "rush_td":"rushingTouchdowns",
   "rec_yds":"receivingYards", "rec":"receptions", "rec_ypg":"receivingYards", "rush_ypg":"rushingYards",
-  "scrim_yds":"rushingYards", "tot_td":"rushingTouchdowns",
+  "scrim_yds":"rushingYards", "tot_td":"rushingTouchdowns", "qbr":"quarterbackRating", "pass_int":"interceptions",
 };
 
 function getEspnTeamIds(row, lg) {
