@@ -841,7 +841,8 @@ function fmtStat(v, stat) {
   return Math.round(v).toLocaleString();
 }
 function fmtSeason(y, lg) {
-  return lg==="NBA" ? `${y}-${String(y+1).slice(2)}` : String(y);
+  // ESPN NBA season 2026 = the 2025-26 season
+  return lg==="NBA" ? `${y-1}-${String(y).slice(2)}` : String(y);
 }
 
 // ====== TEAM MATCHING ======
@@ -1076,10 +1077,12 @@ function render() {
 
     // Year cell
     html += `<div class="cell cell-year">`;
+    const ysDisplay = game.lg === "NBA" ? fmtSeason(row.ys, "NBA") : row.ys;
+    const yeDisplay = game.lg === "NBA" ? fmtSeason(row.ye, "NBA") : row.ye;
     if (row.ys === row.ye) {
-      html += `<span class="year-main">${row.ys}</span>`;
+      html += `<span class="year-main">${ysDisplay}</span>`;
     } else {
-      html += `<span class="year-main">${row.ys}</span><span class="year-sep">to</span><span class="year-main">${row.ye}</span>`;
+      html += `<span class="year-main">${ysDisplay}</span><span class="year-sep">to</span><span class="year-main">${yeDisplay}</span>`;
     }
     html += `</div>`;
 
