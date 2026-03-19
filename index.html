@@ -1315,9 +1315,8 @@ function renderSearchList() {
   list.innerHTML = searchResults.map((p, idx) => {
     let detail = "";
     const years = p.debutYear ? (p.active ? `${p.debutYear}-pres.` : p.endYear ? `${p.debutYear}-${p.endYear}` : `from ${p.debutYear}`) : "";
-    if (p.position && years) detail = `${p.position} · ${years}`;
+    if (league === "NFL" && p.position && years) detail = `${p.position} · ${years}`;
     else if (years) detail = years;
-    else if (p.position) detail = p.position;
     return `<li class="player-list-item" data-pidx="${idx}">
       <span class="pname">${esc(p.name)}</span>
       <span class="pyears">${esc(detail)}</span></li>`;
@@ -1338,7 +1337,7 @@ async function doSearch(q) {
       .slice(0, 15)
       .map(p => ({
         espnId: p.id || null, name: p.n, position: p.p || "",
-        debutYear: p.d || null, endYear: p.e || null, active: p.a
+        debutYear: p.d || null, endYear: p.e || null, active: !!p.a
       }));
 
     if (!searchResults.length) {
