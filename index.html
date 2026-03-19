@@ -497,8 +497,10 @@ const NBA_STATS = [
   { cat:"ftp", display:"FT%", type:"", mode:"avg" },
   { cat:"trb_tot", display:"Rebounds", type:"", mode:"sum" },
   { cat:"trb_pg", display:"RPG", type:"", mode:"avg" },
-  { cat:"stl_pg", display:"Steals", type:"", mode:"avg" },
-  { cat:"blk_pg", display:"Blocks", type:"", mode:"avg" },
+  { cat:"stl_tot", display:"Steals", type:"", mode:"sum" },
+  { cat:"stl_pg", display:"SPG", type:"", mode:"avg" },
+  { cat:"blk_tot", display:"Blocks", type:"", mode:"sum" },
+  { cat:"blk_pg", display:"BPG", type:"", mode:"avg" },
 ];
 
 const MULTI_TEAM = new Set(["TOT","2TM","3TM","4TM","5TM"]);
@@ -677,7 +679,8 @@ const ESPN_NFL_IDS = {"ARI":22,"ATL":1,"BAL":33,"BUF":2,"CAR":29,"CHI":3,"CIN":4
 const STAT_TO_ESPN = {
   // NBA
   "pts_pg":"pointsPerGame", "ast_tot":"assistsPerGame", "three_tot":"3PointMadePerGame", "ftp":"fieldGoalPercentage",
-  "trb_tot":"reboundsPerGame", "trb_pg":"reboundsPerGame", "stl_pg":"stealsPerGame", "blk_pg":"blocksPerGame",
+  "trb_tot":"reboundsPerGame", "trb_pg":"reboundsPerGame",
+  "stl_tot":"stealsPerGame", "stl_pg":"stealsPerGame", "blk_tot":"blocksPerGame", "blk_pg":"blocksPerGame",
   // NFL
   "pass_yds":"passingYards", "pass_td":"passingTouchdowns", "rush_yds":"rushingYards", "rush_td":"rushingTouchdowns",
   "rec_yds":"receivingYards", "rec":"receptions", "rec_ypg":"receivingYards", "rush_ypg":"rushingYards",
