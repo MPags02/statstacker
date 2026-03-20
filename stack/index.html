@@ -420,8 +420,11 @@ function spinSlot(idx) {
   slot.spinning = true;
   render();
 
-  // Pre-focus search input during user tap to keep keyboard chain alive on mobile
-  document.getElementById("searchModal").classList.add("open");
+  // Focus input during user tap (required for mobile keyboard), but hide modal visually
+  const modal = document.getElementById("searchModal");
+  modal.classList.add("open");
+  modal.style.opacity = "0";
+  modal.style.pointerEvents = "none";
   const inp = document.getElementById("searchInput");
   inp.value = "";
   inp.focus();
@@ -429,13 +432,16 @@ function spinSlot(idx) {
   setTimeout(() => {
     slot.spinning = false;
     slot.revealed = true;
+    activeSlot = idx;
+    // Now reveal the modal
+    modal.style.opacity = "";
+    modal.style.pointerEvents = "";
     const s = game.slots[idx];
     const logos = league === "NFL" ? NFL_LOGOS : NBA_LOGOS;
     document.getElementById("modalTitle").innerHTML = `<img src="${logos[s.team]}" style="width:24px;height:24px;object-fit:contain;vertical-align:middle;margin-right:6px">${s.team} — Pick a player`;
     document.getElementById("errorMsg").textContent = "";
     document.getElementById("playerList").innerHTML = "";
     document.getElementById("searchStatus").textContent = "Type to search...";
-    activeSlot = idx;
     render();
   }, 1500);
 }
