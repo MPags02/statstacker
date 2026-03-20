@@ -673,9 +673,11 @@ async function submitPlayer(idx) {
 
     // Set up animation before render
     const slotIdx = game.slots.indexOf(slot);
-    const prevTotal = game.total - val;
+    let prevTotal = 0;
+    game.slots.forEach((s, si) => { if (si !== slotIdx && s.stat != null) prevTotal += s.stat; });
+    const newTotal = prevTotal + val;
     if (!hardMode && !game.done) {
-      pendingAnimation = { slotIdx, statVal: val, prevTotal, newTotal: game.total };
+      pendingAnimation = { slotIdx, statVal: val, prevTotal, newTotal };
     }
 
     render();
@@ -687,7 +689,7 @@ async function submitPlayer(idx) {
         if (statEl) animateCount(statEl, 0, val, 800);
         setTimeout(() => {
           const totalEl = document.querySelector(".running-total .current");
-          if (totalEl) animateCount(totalEl, prevTotal, game.total, 600);
+          if (totalEl) animateCount(totalEl, prevTotal, newTotal, 600);
           // Clear pending animation after both complete
           setTimeout(() => { pendingAnimation = null; }, 650);
         }, 850);
