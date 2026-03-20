@@ -1274,10 +1274,9 @@ function render() {
     }
     html += `</div>`;
 
-    // Top answers dropdown (always in DOM for smooth transition)
-    if (row.player) {
-      const isOpen = expandedRow === i;
-      html += `<div class="top-answers ${isOpen ? 'open' : ''}" style="grid-column:1/-1">`;
+    // Top answers dropdown (only render when expanded)
+    if (row.player && expandedRow === i) {
+      html += `<div class="top-answers open" style="grid-column:1/-1">`;
       if (row.topLoading) {
         html += `<h4><span class="spinner"></span> Finding best answers for this slot...</h4>`;
       } else if (row.topAnswers && row.topAnswers.length > 0) {
