@@ -307,6 +307,39 @@
   }
   .era-select:focus { border-color: #4CAF50; color: #4CAF50; }
 
+  /* Category toggles */
+  .cat-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 0; border-bottom: 1px solid #333;
+  }
+  .cat-item:last-child { border-bottom: none; }
+  .cat-item input[type="checkbox"] {
+    width: 18px; height: 18px; accent-color: #4CAF50; cursor: pointer;
+  }
+  .cat-item label { font-size: 13px; color: #ccc; cursor: pointer; flex: 1; }
+  .cat-item .cat-type { font-size: 11px; color: #666; }
+
+  /* Timer */
+  .timer-bar {
+    text-align: center; padding: 6px; max-width: 720px; margin: 0 auto;
+  }
+  .timer-display {
+    display: inline-block; font-size: 22px; font-weight: 800;
+    font-variant-numeric: tabular-nums; min-width: 50px;
+  }
+  .timer-display.urgent { color: #ef5350; }
+  .timer-display.normal { color: #4CAF50; }
+
+  /* Challenge button */
+  .challenge-btn {
+    display: inline-block; margin-top: 12px; padding: 8px 22px;
+    background: transparent; color: #aaa; border: 1px solid #555;
+    border-radius: 8px; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s; margin-left: 8px;
+  }
+  .challenge-btn:hover { border-color: #888; color: #fff; }
+  .challenge-btn.copied { border-color: #4CAF50; color: #4CAF50; }
+
   /* ── Ads ── */
   .ad-sidebar {
     position: fixed; top: 50%; transform: translateY(-50%);
@@ -372,6 +405,13 @@
       <option value="2015" selected>2015+</option>
       <option value="2020">2020+</option>
     </select>
+    <select class="era-select" id="timerSelect" onchange="changeTimer(this.value)">
+      <option value="0">No Timer</option>
+      <option value="60">60s</option>
+      <option value="90">90s</option>
+      <option value="120">120s</option>
+    </select>
+    <button class="bottom-btn" style="padding:5px 10px;font-size:11px;border-radius:6px" onclick="showCategories()">Stats</button>
     <button class="new-game-btn" onclick="newGame()">New Game</button>
   </div>
 </div>
@@ -393,6 +433,9 @@
 
 <div class="ad-mobile">
   <!-- AD_UNIT_MOBILE: Replace with AdSense ad unit code -->
+</div>
+<div class="timer-bar" id="timerBar" style="display:none">
+  <span class="timer-display normal" id="timerDisplay">60</span>
 </div>
 <div class="grid-container" id="gridContainer">
   <div style="text-align:center;padding:40px;color:#555;">Loading players...</div>
@@ -440,6 +483,24 @@
         <li>Hit <strong>"Share Results"</strong> to copy a shareable summary to your clipboard.</li>
         <li>Click <strong>"New Game"</strong> anytime for a fresh puzzle. No daily limits!</li>
       </ol>
+    </div>
+  </div>
+</div>
+
+<!-- Categories Modal -->
+<div class="modal-overlay" id="categoriesModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Stat Categories</h3>
+      <button class="modal-close" onclick="closeCategories()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <span style="font-size:12px;color:#888">Toggle which stats appear in puzzles</span>
+        <button class="bottom-btn" style="padding:4px 10px;font-size:11px" onclick="toggleAllCategories()">Toggle All</button>
+      </div>
+      <div id="categoryList"></div>
+      <button class="submit-btn" style="margin-top:12px" onclick="applyCategories()">Apply & New Game</button>
     </div>
   </div>
 </div>
@@ -640,7 +701,11 @@ let searchResults = [];      // current filtered player list (ESPN results)
 let submitting = false;
 let guesses = 0;
 let expandedRow = -1;
-let renderGen = 0; // incremented on user-initiated renders to prevent stale background renders
+let currentSeedStr = "";
+let timerEnabled = false;
+let timerSeconds = 60;
+let timerInterval = null;
+let timerRemaining = 0;
 let selectedPlayerData = null; // { espnId, name, imageUrl, seasonLog }
 
 // Simple ESPN API cache
@@ -786,10 +851,37 @@ function extractStat(categories, statCat) {
   return val;
 }
 
+// ====== SEEDED RANDOM ======
+// Mulberry32 PRNG — deterministic from a 32-bit seed
+let _seed = 0;
+function seedRandom(s) {
+  _seed = s | 0;
+}
+function seededRandom() {
+  _seed = (_seed + 0x6D2B79F5) | 0;
+  let t = Math.imul(_seed ^ (_seed >>> 15), 1 | _seed);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
+// Hash a string to a 32-bit seed
+function hashStr(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = ((h << 5) - h + str.charCodeAt(i)) | 0;
+  }
+  return h;
+}
+// Generate a random seed string
+function makeSeedStr() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
 // ====== PUZZLE GEN ======
-function pick(a) { return a[Math.floor(Math.random()*a.length)]; }
-function randInt(a,b) { return Math.floor(Math.random()*(b-a+1))+a; }
-function shuffle(a) { for(let i=a.length-1;i>0;i--){const j=randInt(0,i);[a[i],a[j]]=[a[j],a[i]];} return a; }
+// Seeded versions — only used during puzzle generation
+function pick(a) { return a[Math.floor(seededRandom()*a.length)]; }
+function randInt(a,b) { return Math.floor(seededRandom()*(b-a+1))+a; }
+// Non-seeded shuffle — safe to call from background tasks
+function shuffle(a) { for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
 
 function teamsOverlap(a, b) {
   // null means ANY -- overlaps with everything
@@ -805,49 +897,68 @@ function genPuzzle(lg) {
   const teams = lg==="NFL" ? NFL_TEAMS : NBA_TEAMS;
   const divs = lg==="NFL" ? NFL_DIVS : NBA_DIVS;
   const stats = lg==="NFL" ? NFL_STATS : NBA_STATS;
-  const stat = pick(stats);
+
+  // Pre-draw all random values from the seed to guarantee determinism
+  const rv = []; for (let i = 0; i < 200; i++) rv.push(seededRandom());
+  let ri = 0;
+  function rpick(a) { return a[Math.floor(rv[ri++] * a.length)]; }
+  function rInt(a, b) { return Math.floor(rv[ri++] * (b - a + 1)) + a; }
+
+  // Filter to enabled categories only
+  const enabled = enabledStats[lg];
+  const filteredStats = stats.filter(s => enabled.has(s.cat));
+  const stat = rpick(filteredStats.length > 0 ? filteredStats : stats);
   const tKeys = Object.keys(teams);
   const dKeys = Object.keys(divs);
   const rows = [], used = new Set();
+  const mn = eraMinYear;
 
   for (let i = 0; i < 5; i++) {
     let label, validTeams;
-    const r = Math.random();
+    const r = rv[ri++];
     if (r < 0.12) {
       label = "ANY"; validTeams = null;
     } else if (r < 0.32) {
-      label = pick(dKeys); validTeams = divs[label];
+      label = rpick(dKeys); validTeams = divs[label];
     } else {
-      let t; let tries=0;
-      do { t = pick(tKeys); tries++; } while (used.has(t) && tries < 50);
+      // Pick a team not already used
+      const available = tKeys.filter(t => !used.has(t));
+      const t = available.length > 0 ? rpick(available) : rpick(tKeys);
       used.add(t); label = t; validTeams = [t];
     }
 
-    // Generate year range that doesn't overlap with any existing row sharing team coverage
-    const mn = eraMinYear;
-    const yearOptions = [
-      () => { const y=randInt(Math.max(mn,2019),2025); return [y,y]; },
-      () => { const y=randInt(mn,2018); return [y,y]; },
-      () => [randInt(Math.max(mn,2015),2020), 2025],
-      () => [randInt(mn, Math.max(mn,2014)), randInt(Math.max(mn+5,2014),2019)],
-      () => [randInt(mn, Math.max(mn,2010)), 2025],
-      () => { const s=randInt(mn,Math.max(mn,2000)); return [s, randInt(s+5,Math.min(s+15,2025))]; },
-      () => [mn, randInt(Math.max(mn,2000),Math.max(mn+10,2010))],
-      () => [mn, 2025],
-    ];
-    let ys, ye, attempts = 0;
-    do {
-      const gen = yearOptions[attempts < 8 ? randInt(0, yearOptions.length-1) : attempts % yearOptions.length];
-      [ys, ye] = gen();
-      attempts++;
-    } while (
-      attempts < 30 &&
-      rows.some(prev => teamsOverlap(validTeams, prev.validTeams) && yearsOverlap(ys, ye, prev.ys, prev.ye))
-    );
+    // Pre-generate year range candidates
+    // Single team: single years must be within last 5 years
+    // Division/conference/ANY: any year is fine
+    const isSingleTeam = validTeams && validTeams.length === 1;
+    const maxYr = lg === "NBA" ? 2026 : 2025; // NBA 2026 = current 2025-26 season
+    const recentSingleMin = maxYr - 4; // last 5 seasons
+    const candidates = [];
+    for (let c = 0; c < 8; c++) {
+      let ys, ye;
+      switch(c) {
+        case 0: ys=rInt(Math.max(mn,2015),maxYr-5); ye=maxYr; break;       // recent range
+        case 1: ys=rInt(mn,Math.max(mn,2010)); ye=maxYr; break;            // wide range
+        case 2: ys=rInt(mn,Math.max(mn,2014)); ye=rInt(Math.max(mn+5,2014),maxYr-6); break; // mid range
+        case 3: { const s=rInt(mn,Math.max(mn,2000)); ys=s; ye=rInt(s+5,Math.min(s+15,maxYr)); break; } // historical
+        case 4: ys=mn; ye=maxYr; break;                                     // full range
+        case 5: ys=mn; ye=rInt(Math.max(mn,2000),Math.max(mn+10,2010)); break; // early era
+        case 6: { const y=rInt(isSingleTeam ? recentSingleMin : Math.max(mn,maxYr-6), maxYr); ys=y; ye=y; break; }
+        case 7: { const y=rInt(isSingleTeam ? recentSingleMin : mn, maxYr); ys=y; ye=y; break; }
+      }
+      candidates.push([ys, ye]);
+    }
+    // Use first candidate that doesn't overlap with existing rows
+    let chosen = candidates[0]; // default: first candidate
+    for (const [ys, ye] of candidates) {
+      if (!rows.some(prev => teamsOverlap(validTeams, prev.validTeams) && yearsOverlap(ys, ye, prev.ys, prev.ye))) {
+        chosen = [ys, ye]; break;
+      }
+    }
 
-    rows.push({ label, validTeams, ys, ye, player:null, data:null, statVal:null, season:null, team:null, imgUrl:null, topAnswers:null, topLoading:false });
+    rows.push({ label, validTeams, ys: chosen[0], ye: chosen[1], player:null, data:null, statVal:null, season:null, team:null, imgUrl:null, topAnswers:null, topLoading:false });
   }
-  return { lg, stat, rows, done:false };
+  return { lg, stat, rows, done:false, seedStr: currentSeedStr };
 }
 
 // ====== LOGO ======
@@ -911,6 +1022,14 @@ function getEspnTeamIds(row, lg) {
   return Object.values(idMap);
 }
 
+// Find ESPN category by name with fallback for naming inconsistencies
+function findEspnCategory(categories, name) {
+  if (!categories) return null;
+  return categories.find(c => c.name === name)
+    || categories.find(c => c.name.toLowerCase() === name.toLowerCase())
+    || categories.find(c => c.name.replace("sMade","Made") === name || c.name === name.replace("Made","sMade"));
+}
+
 // Fetch ESPN leaders for one team+season, return player names AND athlete IDs
 async function fetchEspnLeaderNames(espnTeamId, season, espnCat, lg) {
   const sport = lg === "NFL" ? "football" : "basketball";
@@ -920,7 +1039,7 @@ async function fetchEspnLeaderNames(espnTeamId, season, espnCat, lg) {
     const resp = await fetch(url);
     if (!resp.ok) return [];
     const data = await resp.json();
-    const cat = data.categories?.find(c => c.name === espnCat);
+    const cat = findEspnCategory(data.categories, espnCat);
     if (!cat?.leaders) return [];
 
     // Resolve athlete names and IDs in parallel
@@ -950,7 +1069,7 @@ async function fetchLeagueLeaderNames(season, espnCat, lg) {
     const resp = await fetch(url);
     if (!resp.ok) return [];
     const data = await resp.json();
-    const cat = data.categories?.find(c => c.name === espnCat);
+    const cat = findEspnCategory(data.categories, espnCat);
     if (!cat?.leaders) return [];
     const results = await Promise.all(cat.leaders.map(async (l) => {
       try {
@@ -982,28 +1101,29 @@ async function fetchTopAnswersForRow(rowIdx) {
   const useLeagueWide = !row.validTeams || row.validTeams.length > 8;
 
   // Step 1: Identify candidate players from ESPN leaders
-  const playerMap = new Map(); // espnId -> name
+  // Map espnId -> { name, seasons: Set of seasons they appeared as leader }
+  const playerMap = new Map();
+
+  function addLeader(espnId, name, season) {
+    if (!espnId || !name) return;
+    if (!playerMap.has(espnId)) playerMap.set(espnId, { name, seasons: new Set() });
+    playerMap.get(espnId).seasons.add(season);
+  }
 
   if (useLeagueWide) {
-    // Use league-wide leaders (1 call per season instead of N teams x seasons)
     const seasons = [];
     for (let y = row.ys; y <= row.ye; y++) seasons.push(y);
     for (let b = 0; b < seasons.length; b += 10) {
       if (game.rows[rowIdx] !== row) return;
       const batch = seasons.slice(b, b + 10);
       const results = await Promise.allSettled(
-        batch.map(y => fetchLeagueLeaderNames(y, espnCat, lg))
+        batch.map(y => fetchLeagueLeaderNames(y, espnCat, lg).then(leaders => leaders.map(l => ({...l, season: y}))))
       );
       for (const r of results) {
-        if (r.status === "fulfilled") {
-          for (const leader of r.value) {
-            if (leader.espnId && leader.name) playerMap.set(leader.espnId, leader.name);
-          }
-        }
+        if (r.status === "fulfilled") r.value.forEach(l => addLeader(l.espnId, l.name, l.season));
       }
     }
   } else {
-    // Use team-specific leaders (query every team+season combo — no cap)
     const espnTeamIds = getEspnTeamIds(row, lg);
     const queries = [];
     for (const tid of espnTeamIds) {
@@ -1013,14 +1133,10 @@ async function fetchTopAnswersForRow(rowIdx) {
       if (game.rows[rowIdx] !== row) return;
       const batch = queries.slice(b, b + 10);
       const results = await Promise.allSettled(
-        batch.map(q => fetchEspnLeaderNames(q.tid, q.season, espnCat, lg))
+        batch.map(q => fetchEspnLeaderNames(q.tid, q.season, espnCat, lg).then(leaders => leaders.map(l => ({...l, season: q.season}))))
       );
       for (const r of results) {
-        if (r.status === "fulfilled") {
-          for (const leader of r.value) {
-            if (leader.espnId && leader.name) playerMap.set(leader.espnId, leader.name);
-          }
-        }
+        if (r.status === "fulfilled") r.value.forEach(l => addLeader(l.espnId, l.name, l.season));
       }
     }
   }
@@ -1042,35 +1158,32 @@ async function fetchTopAnswersForRow(rowIdx) {
     }
   }
 
-  const athletes = [...playerMap.entries()]; // [espnId, name]
-  for (let b = 0; b < athletes.length; b += 8) {
+  // Flatten to individual (espnId, name, season) tasks — only fetch seasons we know about
+  const tasks = [];
+  for (const [espnId, { name, seasons }] of playerMap) {
+    for (const season of seasons) {
+      tasks.push({ espnId, name, season });
+    }
+  }
+  for (let b = 0; b < tasks.length; b += 10) {
     if (game.rows[rowIdx] !== row) return;
-    const batch = athletes.slice(b, b + 8);
+    const batch = tasks.slice(b, b + 10);
     const results = await Promise.allSettled(
-      batch.map(async ([espnId, name]) => {
-        // Get season log to find which seasons this player was active
+      batch.map(async ({ espnId, name, season }) => {
+        const categories = await fetchSeasonStats(espnId, season, lg);
+        if (!categories) return null;
+        const val = extractStat(categories, stat.cat);
+        if (val == null) return null;
+        // Get team for display
         const seasonLog = await fetchSeasonLog(espnId, lg);
-        const entries = [];
-        for (const logEntry of seasonLog) {
-          if (logEntry.season < row.ys || logEntry.season > row.ye) continue;
-          // Check if team matches row constraint
-          const teamAbbrs = logEntry.teamIds.map(tid => espnTeamIdToAbbr(tid, lg)).filter(Boolean);
-          const matchingTeam = teamAbbrs.find(abbr => teamMatchesRow(abbr, row));
-          if (!matchingTeam && row.validTeams) continue; // skip if no team match
-          const displayTeam = matchingTeam || (teamAbbrs.length > 0 ? teamAbbrs[0] : "");
-
-          // Fetch stats for this season
-          const categories = await fetchSeasonStats(espnId, logEntry.season, lg);
-          if (!categories) continue;
-          const val = extractStat(categories, stat.cat);
-          if (val == null) continue;
-          entries.push({ name, season: logEntry.season, team: displayTeam, score: val });
-        }
-        return entries;
+        const logEntry = seasonLog.find(s => s.season === season);
+        const teamAbbrs = logEntry ? logEntry.teamIds.map(tid => espnTeamIdToAbbr(tid, lg)).filter(Boolean) : [];
+        const team = teamAbbrs.length > 0 ? teamAbbrs[teamAbbrs.length - 1] : "";
+        return { name, season, team, score: val };
       })
     );
     for (const r of results) {
-      if (r.status === "fulfilled") allEntries.push(...r.value);
+      if (r.status === "fulfilled" && r.value) allEntries.push(r.value);
     }
   }
 
@@ -1232,6 +1345,7 @@ function render() {
       html += `<div>Best possible: <span class="val">${bestDisplay}</span></div>`;
       html += `</div>`;
       html += `<button class="share-btn" data-share="${pct}" data-emojis="${tierEmojis.join("")}" data-sport="${game.lg}" data-stat="${esc(game.stat.display)}" data-score="${yourDisplay}">Share Results</button>`;
+      html += `<button class="challenge-btn" data-challenge="1">Challenge a Friend</button>`;
       html += `</div>`;
     } else if (anyLoading) {
       html += `<div class="conclusion">`;
@@ -1306,18 +1420,22 @@ function switchLeague(lg) {
   newGame();
 }
 
-async function newGame() {
+async function newGame(seed) {
   expandedRow = -1;
   guesses = 0;
   Object.keys(espnCache).forEach(k => { if (k.startsWith("stats:")) delete espnCache[k]; });
   animateNewGame = true;
+  currentSeedStr = seed || makeSeedStr();
+  seedRandom(hashStr(currentSeedStr + league + eraMinYear));
   await loadPlayerDb(league);
   game = genPuzzle(league);
   document.getElementById("statCategory").textContent = game.stat.display;
   document.getElementById("statType").textContent = game.stat.type;
+  // Clear URL params if this is a fresh game (not from a challenge link)
+  if (!seed) window.history.replaceState({}, "", window.location.pathname);
   render();
-  // Pre-fetch top answers for all rows in the background
   prefetchAllRows();
+  startTimer();
 }
 
 async function prefetchAllRows() {
@@ -1361,7 +1479,6 @@ function openSearch(i) {
   document.getElementById("searchStatus").textContent = "Type to search...";
   document.getElementById("searchModal").classList.add("open");
   // Focus must happen synchronously in the user gesture chain for mobile keyboard.
-  // But the modal needs to be visible first. Force a layout reflow between showing and focusing.
   const inp = document.getElementById("searchInput");
   inp.offsetHeight; // force reflow so modal is rendered
   inp.focus();
@@ -1586,7 +1703,7 @@ async function submitPick() {
       fetchTopAnswersForRow(savedRow);
     }
 
-    if (game.rows.every(r => r.player)) game.done = true;
+    if (game.rows.every(r => r.player)) { game.done = true; stopTimer(); }
     closeSearch();
     render();
 
@@ -1682,8 +1799,162 @@ document.getElementById("gridContainer").addEventListener("click", e => {
   });
 });
 
+// ====== TIMER ======
+function changeTimer(val) {
+  const secs = parseInt(val);
+  timerEnabled = secs > 0;
+  timerSeconds = secs;
+  stopTimer();
+  document.getElementById("timerBar").style.display = timerEnabled ? "" : "none";
+  // Start timer immediately for current game
+  if (timerEnabled && game && !game.done) {
+    startTimer();
+  }
+}
+
+function startTimer() {
+  if (!timerEnabled || !game) return;
+  stopTimer();
+  timerRemaining = timerSeconds;
+  updateTimerDisplay();
+  document.getElementById("timerBar").style.display = "";
+  timerInterval = setInterval(() => {
+    timerRemaining--;
+    updateTimerDisplay();
+    if (timerRemaining <= 0) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+      // Time's up — close search if open, mark all unfilled rows
+      if (activeRow !== null) {
+        document.getElementById("searchModal").classList.remove("open");
+        activeRow = null; selectedPlayerIdx = -1; searchResults = []; selectedPlayerData = null;
+      }
+      game.done = true;
+      game.rows.forEach(r => {
+        if (!r.player) {
+          r.player = { fn: "Time's", ln: "Up" };
+          r.statVal = 0; r.season = 0; r.team = "";
+        }
+      });
+      render();
+    }
+  }, 1000);
+}
+
+function stopTimer() {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+}
+
+function updateTimerDisplay() {
+  const el = document.getElementById("timerDisplay");
+  el.textContent = timerRemaining;
+  el.className = "timer-display " + (timerRemaining <= 10 ? "urgent" : "normal");
+}
+
+// ====== CHALLENGE LINKS ======
+function buildChallengeUrl() {
+  if (!game) return "";
+  const params = new URLSearchParams();
+  params.set("s", game.seedStr);
+  params.set("l", game.lg);
+  params.set("e", eraMinYear);
+  if (timerEnabled) params.set("t", timerSeconds);
+  return window.location.origin + window.location.pathname + "?" + params.toString();
+}
+
+// Challenge button click handler
+document.getElementById("gridContainer").addEventListener("click", e => {
+  const btn = e.target.closest(".challenge-btn");
+  if (!btn) return;
+  const url = buildChallengeUrl();
+  navigator.clipboard.writeText(url).then(() => {
+    btn.textContent = "Link Copied!";
+    btn.classList.add("copied");
+    setTimeout(() => { btn.textContent = "Challenge a Friend"; btn.classList.remove("copied"); }, 2000);
+  }).catch(() => {
+    const ta = document.createElement("textarea");
+    ta.value = url; document.body.appendChild(ta);
+    ta.select(); document.execCommand("copy");
+    document.body.removeChild(ta);
+    btn.textContent = "Link Copied!";
+    btn.classList.add("copied");
+    setTimeout(() => { btn.textContent = "Challenge a Friend"; btn.classList.remove("copied"); }, 2000);
+  });
+});
+
+// ====== CATEGORIES ======
+// Track which stat categories are enabled (all on by default)
+const enabledStats = { NFL: new Set(NFL_STATS.map(s => s.cat)), NBA: new Set(NBA_STATS.map(s => s.cat)) };
+
+function showCategories() {
+  const stats = league === "NFL" ? NFL_STATS : NBA_STATS;
+  const enabled = enabledStats[league];
+  const list = document.getElementById("categoryList");
+  list.innerHTML = stats.map(s =>
+    `<div class="cat-item">
+      <input type="checkbox" id="cat_${s.cat}" ${enabled.has(s.cat) ? "checked" : ""}>
+      <label for="cat_${s.cat}">${s.display}</label>
+      ${s.type ? `<span class="cat-type">${s.type}</span>` : ""}
+    </div>`
+  ).join("");
+  document.getElementById("categoriesModal").classList.add("open");
+}
+
+function closeCategories() {
+  document.getElementById("categoriesModal").classList.remove("open");
+}
+
+function toggleAllCategories() {
+  const stats = league === "NFL" ? NFL_STATS : NBA_STATS;
+  const checkboxes = document.querySelectorAll("#categoryList input[type=checkbox]");
+  const allChecked = [...checkboxes].every(c => c.checked);
+  checkboxes.forEach(c => c.checked = !allChecked);
+}
+
+function applyCategories() {
+  const stats = league === "NFL" ? NFL_STATS : NBA_STATS;
+  const enabled = enabledStats[league];
+  enabled.clear();
+  stats.forEach(s => {
+    const cb = document.getElementById("cat_" + s.cat);
+    if (cb && cb.checked) enabled.add(s.cat);
+  });
+  // Must have at least one
+  if (enabled.size === 0) {
+    enabled.add(stats[0].cat);
+  }
+  closeCategories();
+  newGame();
+}
+
+document.getElementById("categoriesModal").addEventListener("click", e => {
+  if (e.target === document.getElementById("categoriesModal")) closeCategories();
+});
+
 // ====== INIT ======
-newGame();
+(function init() {
+  // Check for challenge link params
+  const params = new URLSearchParams(window.location.search);
+  const seed = params.get("s");
+  const lg = params.get("l");
+  const era = params.get("e");
+  const timer = params.get("t");
+
+  if (lg && (lg === "NFL" || lg === "NBA")) {
+    league = lg;
+    document.querySelectorAll(".league-btn").forEach(b => b.classList.toggle("active", b.dataset.league === lg));
+  }
+  if (era) {
+    eraMinYear = parseInt(era);
+    document.getElementById("eraSelect").value = era;
+  }
+  if (timer) {
+    changeTimer(timer);
+    document.getElementById("timerSelect").value = timer;
+  }
+
+  newGame(seed || undefined);
+})();
 </script>
 </body>
 </html>
