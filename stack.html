@@ -295,6 +295,7 @@ const STACK_STATS = {
 let league = "NFL";
 let game = null;
 let activeSlot = -1;
+let pendingAnimation = null; // { slotIdx, statVal, prevTotal, newTotal }
 let searchResults = [];
 let submitting = false;
 let hardMode = false;
@@ -442,7 +443,7 @@ function render() {
     <div class="target-label">Target</div>
     <div class="target-stat">${game.stat.display}</div>
     <div class="target-number">${game.target.toLocaleString()}</div>
-    ${hardMode && !game.done ? '<div class="running-total" style="color:#555">Current: <span class="current">???</span></div>' : `<div class="running-total">Current: <span class="current">${total.toLocaleString()}</span></div>`}
+    ${hardMode && !game.done ? '<div class="running-total" style="color:#555">Current: <span class="current">???</span></div>' : `<div class="running-total">Current: <span class="current">${(pendingAnimation ? pendingAnimation.prevTotal : total).toLocaleString()}</span></div>`}
   </div>`;
 
   const anySpinning = game.slots.some(s => s.spinning);
@@ -471,9 +472,11 @@ function render() {
     if (slot.player) {
       const showStat = !hardMode || game.done;
       html += `${slot.imgUrl ? `<img src="${slot.imgUrl}" style="width:36px;height:36px;object-fit:cover;flex-shrink:0" onerror="this.style.display='none'">` : ""}`;
+      const isAnimating = pendingAnimation && pendingAnimation.slotIdx === i;
+      const displayStat = !showStat ? "???" : isAnimating ? "0" : (slot.stat != null ? slot.stat.toLocaleString() : "—");
       html += `<div class="slot-info" style="display:flex;justify-content:space-between;align-items:center">
         <div class="slot-player-name">${esc(slot.player)}</div>
-        <div class="slot-player-stat">${showStat && slot.stat != null ? slot.stat.toLocaleString() : "???"}</div>
+        <div class="slot-player-stat">${displayStat}</div>
       </div>`;
     } else if (slot.spinning) {
       html += `<div class="slot-info"><div class="slot-empty">Spinning...</div></div>`;
@@ -667,20 +670,26 @@ async function submitPlayer(idx) {
 
     if (game.slots.every(s => s.player)) game.done = true;
     closeSearch();
+
+    // Set up animation before render
+    const slotIdx = game.slots.indexOf(slot);
+    const prevTotal = game.total - val;
+    if (!hardMode && !game.done) {
+      pendingAnimation = { slotIdx, statVal: val, prevTotal, newTotal: game.total };
+    }
+
     render();
 
-    // Animate: countup the player's stat, then roll the running total
-    if (!hardMode) {
-      const slotIdx = game.slots.indexOf(slot);
+    // Run the animation
+    if (pendingAnimation) {
       setTimeout(() => {
-        // Countup the individual stat
         const statEl = document.querySelectorAll(".slot-player-stat")[slotIdx];
         if (statEl) animateCount(statEl, 0, val, 800);
-        // After stat countup, animate the running total
         setTimeout(() => {
           const totalEl = document.querySelector(".running-total .current");
-          const prevTotal = game.total - val;
           if (totalEl) animateCount(totalEl, prevTotal, game.total, 600);
+          // Clear pending animation after both complete
+          setTimeout(() => { pendingAnimation = null; }, 650);
         }, 850);
       }, 50);
     }
