@@ -686,13 +686,10 @@ async function submitPlayer(idx) {
     if (pendingAnimation) {
       setTimeout(() => {
         const statEl = document.querySelectorAll(".slot-player-stat")[slotIdx];
+        const totalEl = document.querySelector(".running-total .current");
         if (statEl) animateCount(statEl, 0, val, 800);
-        setTimeout(() => {
-          const totalEl = document.querySelector(".running-total .current");
-          if (totalEl) animateCount(totalEl, prevTotal, newTotal, 600);
-          // Clear pending animation after both complete
-          setTimeout(() => { pendingAnimation = null; }, 650);
-        }, 850);
+        if (totalEl) animateCount(totalEl, prevTotal, newTotal, 800);
+        setTimeout(() => { pendingAnimation = null; }, 850);
       }, 50);
     }
   } catch (e) {
