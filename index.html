@@ -1318,7 +1318,7 @@ function render() {
   });
 
   // Conclusion panel when game is done
-  if (game.done && game.rows.some(r => r.player && r.player.fn !== "Give")) {
+  if (game.done) {
     const allTopReady = game.rows.every(r => r.topAnswers && r.topAnswers.length > 0);
     const anyLoading = game.rows.some(r => r.topLoading);
 
@@ -1481,12 +1481,14 @@ async function prefetchAllRows() {
 function giveUp() {
   if (!game || game.done) return;
   game.done = true;
-  game.rows.forEach(r => {
+  game.rows.forEach((r, i) => {
     if (!r.player) {
       r.player = { fn:"Give", ln:"Up" };
       r.statVal = 0; r.season = 0;
       r.team = guesses===0 ? "DIDN'T TRY" : "";
     }
+    // Ensure top answers are fetching for conclusion
+    if (!r.topAnswers && !r.topLoading) fetchTopAnswersForRow(i);
   });
   render();
 }
