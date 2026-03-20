@@ -8,7 +8,7 @@
 <meta property="og:title" content="StatStacker - Stack">
 <meta property="og:description" content="Spin teams, pick players, stack career totals to hit the target. How close can you get?">
 <meta property="og:image" content="https://statstacker.com/og-image.png">
-<meta property="og:url" content="https://statstacker.com/stack.html">
+<meta property="og:url" content="https://statstacker.com/stack">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="StatStacker - Stack">
@@ -195,8 +195,8 @@
   <div style="position:relative">
     <h1 style="cursor:pointer" onclick="document.getElementById('modeMenu').classList.toggle('open')">Stat<span>Stacker</span> <span style="font-size:10px;color:#666">&#9660;</span></h1>
     <div id="modeMenu" class="mode-menu">
-      <a class="mode-item" href="index.html">Classic</a>
-      <a class="mode-item active" href="stack.html">Stack</a>
+      <a class="mode-item" href="/">Classic</a>
+      <a class="mode-item active" href="/stack/">Stack</a>
     </div>
   </div>
   <div class="header-controls">
@@ -306,7 +306,7 @@ const playerDb = { NFL: null, NBA: null };
 async function loadPlayerDb(lg) {
   if (playerDb[lg]) return;
   try {
-    const r = await fetch(`${lg.toLowerCase()}_players.json`);
+    const r = await fetch(`/${lg.toLowerCase()}_players.json`);
     playerDb[lg] = await r.json();
   } catch(e) { playerDb[lg] = []; }
 }
@@ -704,7 +704,7 @@ function shareStack() {
   if (!game) return;
   const diff = game.total - game.target;
   const sign = diff > 0 ? "+" : "";
-  const text = `StatStacker Stack ${league === "NFL" ? "\uD83C\uDFC8" : "\uD83C\uDFC0"}\n${game.stat.display}\nTarget: ${game.target.toLocaleString()}\nResult: ${game.total.toLocaleString()} (${sign}${diff.toLocaleString()})\nstatstacker.com/stack.html`;
+  const text = `StatStacker Stack ${league === "NFL" ? "\uD83C\uDFC8" : "\uD83C\uDFC0"}\n${game.stat.display}\nTarget: ${game.target.toLocaleString()}\nResult: ${game.total.toLocaleString()} (${sign}${diff.toLocaleString()})\nstatstacker.com/stack`;
   navigator.clipboard.writeText(text).then(() => {
     const btn = document.querySelector(".share-btn");
     if (btn) { btn.textContent = "Copied!"; btn.classList.add("copied"); setTimeout(() => { btn.textContent = "Share Results"; btn.classList.remove("copied"); }, 2000); }
