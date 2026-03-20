@@ -23,6 +23,19 @@
     letter-spacing: -0.5px;
   }
   .header h1 span { color: #4CAF50; }
+  .mode-menu {
+    display: none; position: absolute; top: 100%; left: 0;
+    background: #333; border-radius: 6px; overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4); z-index: 50; min-width: 120px;
+  }
+  .mode-menu.open { display: block; }
+  .mode-item {
+    display: block; padding: 10px 16px; color: #ccc;
+    text-decoration: none; font-size: 13px; font-weight: 600;
+    transition: background 0.15s;
+  }
+  .mode-item:hover { background: #444; }
+  .mode-item.active { color: #4CAF50; }
   .header-controls { display: flex; gap: 6px; align-items: center; flex-wrap: nowrap; }
   .league-btn {
     padding: 7px 16px; border: 2px solid #444; background: transparent;
@@ -393,7 +406,13 @@
 <body>
 
 <div class="header">
-  <h1>Stat<span>Stacker</span></h1>
+  <div style="position:relative">
+    <h1 style="cursor:pointer" onclick="document.getElementById('modeMenu').classList.toggle('open')">Stat<span>Stacker</span> <span style="font-size:10px;color:#666">&#9660;</span></h1>
+    <div id="modeMenu" class="mode-menu">
+      <a class="mode-item active" href="index.html">Classic</a>
+      <a class="mode-item" href="stack.html">Stack</a>
+    </div>
+  </div>
   <div class="header-controls">
     <button class="league-btn active" data-league="NFL" onclick="switchLeague('NFL')">NFL</button>
     <button class="league-btn" data-league="NBA" onclick="switchLeague('NBA')">NBA</button>
@@ -1530,14 +1549,21 @@ async function doSearch(q) {
     const ql = q.toLowerCase();
     const db = playerDb[league] || [];
 
-    // Search local player database (instant, includes all retired + active)
-    searchResults = db
-      .filter(p => p.n.toLowerCase().includes(ql))
-      .slice(0, 15)
-      .map(p => ({
-        espnId: p.id || null, name: p.n, position: p.p || "",
-        debutYear: p.d || null, endYear: p.e || null, active: !!p.a
-      }));
+    // Only show players with ESPN IDs. Match partial first names ("will" finds "William")
+    const words = ql.split(/\s+/);
+    searchResults = db.filter(p => {
+      if (!p.id) return false;
+      const nl = p.n.toLowerCase();
+      if (nl.includes(ql)) return true;
+      if (words.length > 1) {
+        const nameParts = nl.split(/\s+/);
+        return words.every(w => nameParts.some(np => np.startsWith(w)));
+      }
+      return nl.split(/\s+/).some(np => np.startsWith(ql));
+    }).slice(0, 15).map(p => ({
+      espnId: p.id, name: p.n, position: p.p || "",
+      debutYear: p.d || null, endYear: p.e || null, active: !!p.a
+    }));
 
     if (!searchResults.length) {
       list.innerHTML = ""; status.textContent = "No players found."; return;
@@ -1563,13 +1589,26 @@ async function pickPlayer(idx) {
   try {
     let espnId = p.espnId;
     if (!espnId) {
-      // Retired player without ESPN ID — resolve by searching ESPN
-      try {
-        const resp = await fetch(`${ESPN_SEARCH}?query=${encodeURIComponent(p.name)}&limit=5`);
-        const data = await resp.json();
-        const match = (data.items || []).find(i => (i.displayName || "").toLowerCase() === p.name.toLowerCase());
-        if (match) { espnId = String(match.id); p.espnId = espnId; }
-      } catch {}
+      // Resolve ESPN ID — try multiple search queries (full name, stripped suffix, last name)
+      const pNorm = p.name.toLowerCase().replace(/ jr\.?$| sr\.?$| ii$| iii$| iv$| v$/i, "").trim();
+      const nameParts = p.name.split(" ");
+      const queries = [p.name];
+      if (pNorm !== p.name.toLowerCase()) queries.push(pNorm);
+      if (nameParts.length > 1) queries.push(nameParts[nameParts.length - 1]);
+
+      for (const q of queries) {
+        if (espnId) break;
+        try {
+          const resp = await fetch(`${ESPN_SEARCH}?query=${encodeURIComponent(q)}&limit=10&type=player&sport=${league === "NFL" ? "football" : "basketball"}`);
+          const data = await resp.json();
+          const match = (data.items || []).find(i => {
+            const dn = (i.displayName || "").toLowerCase();
+            const dnNorm = dn.replace(/ jr\.?$| sr\.?$| ii$| iii$| iv$| v$/i, "").trim();
+            return dn === p.name.toLowerCase() || dnNorm === pNorm || dn.includes(pNorm) || pNorm.includes(dnNorm);
+          });
+          if (match) { espnId = String(match.id); p.espnId = espnId; }
+        } catch {}
+      }
       if (!espnId) {
         document.getElementById("searchStatus").textContent = "";
         document.getElementById("errorMsg").textContent = "Could not find stats for this player. Try a different spelling.";
@@ -1929,6 +1968,14 @@ function applyCategories() {
 
 document.getElementById("categoriesModal").addEventListener("click", e => {
   if (e.target === document.getElementById("categoriesModal")) closeCategories();
+});
+
+// Close mode menu on outside click
+document.addEventListener("click", e => {
+  const menu = document.getElementById("modeMenu");
+  if (menu.classList.contains("open") && !e.target.closest(".mode-menu") && !e.target.closest("h1")) {
+    menu.classList.remove("open");
+  }
 });
 
 // ====== INIT ======

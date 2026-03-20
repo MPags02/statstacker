@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>StatStacker - Stack</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { overflow-x: hidden; }
+  body { min-height: 100vh; background: #262624; overflow-x: hidden; width: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #e8e8e8; }
+
+  .header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 16px; background: #1e1e1c; flex-wrap: wrap; gap: 8px;
+  }
+  .header h1 { font-size: 20px; font-weight: 700; color: #e0e0e0; letter-spacing: -0.5px; }
+  .header h1 span { color: #4CAF50; }
+  .mode-menu {
+    display: none; position: absolute; top: 100%; left: 0;
+    background: #333; border-radius: 6px; overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4); z-index: 50; min-width: 120px;
+  }
+  .mode-menu.open { display: block; }
+  .mode-item {
+    display: block; padding: 10px 16px; color: #ccc;
+    text-decoration: none; font-size: 13px; font-weight: 600; transition: background 0.15s;
+  }
+  .mode-item:hover { background: #444; }
+  .mode-item.active { color: #4CAF50; }
+  .header-controls { display: flex; gap: 6px; align-items: center; flex-wrap: nowrap; }
+  .league-btn {
+    padding: 7px 16px; border: 2px solid #444; background: transparent;
+    color: #aaa; border-radius: 6px; cursor: pointer; font-size: 13px;
+    font-weight: 700; transition: all 0.2s; letter-spacing: 0.5px;
+  }
+  .league-btn.active { border-color: #4CAF50; color: #4CAF50; background: rgba(76,175,80,0.08); }
+  .league-btn:hover:not(.active) { border-color: #666; color: #ccc; }
+  .new-game-btn {
+    padding: 7px 16px; border: none; background: #4CAF50; color: #fff;
+    border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 700;
+  }
+  .new-game-btn:hover { background: #43a047; }
+
+  .game-area { max-width: 500px; margin: 0 auto; padding: 16px; text-align: center; }
+
+  /* Target display */
+  .target-box {
+    background: #1e1e1c; border-radius: 12px; padding: 20px; margin-bottom: 20px;
+  }
+  .target-label { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 1.5px; }
+  .target-stat { font-size: 16px; font-weight: 700; color: #fff; margin-top: 4px; }
+  .target-number { font-size: 48px; font-weight: 800; color: #4CAF50; margin-top: 4px; }
+  .running-total { font-size: 14px; color: #aaa; margin-top: 8px; }
+  .running-total .current { font-weight: 700; color: #fff; font-size: 20px; }
+
+  /* Slot rows */
+  .slot-row {
+    display: flex; align-items: center; gap: 8px; background: #333330;
+    border-radius: 8px; padding: 10px 14px; margin-bottom: 6px; min-height: 64px;
+  }
+  .slot-team {
+    width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .slot-team img { width: 44px; height: 44px; object-fit: contain; }
+  .slot-info { flex: 1; text-align: left; }
+  .slot-player-name { font-size: 14px; font-weight: 600; color: #fff; }
+  .slot-player-stat { font-size: 20px; font-weight: 800; color: #fff; }
+  .slot-empty { color: #555; font-size: 13px; }
+  .slot-btn {
+    padding: 8px 14px; background: #4CAF50; border: none; border-radius: 6px;
+    color: #fff; font-weight: 700; font-size: 12px; cursor: pointer;
+    flex-shrink: 0;
+  }
+  .slot-btn:hover { background: #43a047; }
+  .slot-btn:disabled { background: #555; cursor: default; }
+
+  /* Spinner animation */
+  .spinner-reel {
+    height: 50px; overflow: hidden; position: relative;
+  }
+  .spinner-reel-inner {
+    transition: transform 2s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .spinner-reel-item {
+    height: 50px; display: flex; align-items: center; justify-content: center;
+  }
+  .spinner-reel-item img { width: 40px; height: 40px; object-fit: contain; }
+
+  /* Conclusion */
+  .stack-conclusion {
+    background: #2a2a28; border-radius: 10px; padding: 24px; margin-top: 20px;
+    animation: conclusionIn 0.5s ease-out;
+  }
+  @keyframes conclusionIn {
+    from { opacity: 0; transform: scale(0.9) translateY(20px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .result-diff { font-size: 48px; font-weight: 800; margin: 8px 0; }
+  .result-diff.perfect { color: #4CAF50; }
+  .result-diff.close { color: #ffc107; }
+  .result-diff.far { color: #ef5350; }
+  .result-label { font-size: 13px; color: #888; }
+  .result-remark { font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+  .share-btn {
+    display: inline-block; margin-top: 12px; padding: 10px 28px;
+    background: #4CAF50; color: #fff; border: none; border-radius: 8px;
+    font-size: 14px; font-weight: 700; cursor: pointer;
+  }
+  .share-btn:hover { background: #43a047; }
+  .share-btn.copied { background: #333; color: #aaa; }
+
+  /* Modal */
+  .modal-overlay {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.75); z-index: 100;
+    justify-content: center; align-items: flex-start; padding-top: 60px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #2a2a28; border-radius: 12px; width: 92%; max-width: 420px;
+    max-height: 75vh; display: flex; flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  }
+  .modal-header {
+    padding: 14px 18px; border-bottom: 1px solid #333;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .modal-header h3 { font-size: 15px; color: #fff; font-weight: 600; }
+  .modal-close {
+    background: none; border: none; color: #888; font-size: 22px;
+    cursor: pointer; padding: 0 4px; line-height: 1;
+  }
+  .modal-close:hover { color: #fff; }
+  .modal-body { padding: 14px 18px; overflow-y: auto; flex: 1; }
+  .search-input {
+    width: 100%; padding: 11px 14px; background: #1e1e1c; border: 1px solid #444;
+    border-radius: 8px; color: #fff; font-size: 15px; outline: none;
+  }
+  .search-input:focus { border-color: #4CAF50; }
+  .search-input::placeholder { color: #555; }
+  .player-list { list-style: none; margin-top: 8px; }
+  .player-list-item {
+    padding: 9px 10px; border-radius: 5px; cursor: pointer;
+    display: flex; justify-content: space-between; align-items: center; transition: background 0.12s;
+  }
+  .player-list-item:hover { background: #3a3a38; }
+  .player-list-item .pname { font-size: 14px; font-weight: 500; }
+  .player-list-item .pyears { font-size: 11px; color: #777; }
+  .search-status { color: #777; font-size: 12px; padding: 6px 0; text-align: center; }
+  .error-msg { color: #ef5350; font-size: 12px; margin-top: 6px; text-align: center; }
+  .submit-btn {
+    padding: 10px; background: #4CAF50; color: #fff; border: none;
+    border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 700;
+    width: 100%; margin-top: 8px;
+  }
+  .submit-btn:hover { background: #43a047; }
+  .submit-btn:disabled { background: #555; cursor: not-allowed; }
+  .spinner { display: inline-block; width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff;
+    border-radius: 50%; animation: spin 0.7s linear infinite;
+    vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .cat-item { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #333; }
+  .cat-item:last-child { border-bottom:none; }
+  .cat-item input[type="checkbox"] { width:18px; height:18px; accent-color:#4CAF50; cursor:pointer; }
+  .cat-item label { font-size:13px; color:#ccc; cursor:pointer; flex:1; }
+
+  #confetti { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 999; }
+
+  @media (max-width: 600px) {
+    .header h1 { font-size: 17px; }
+    .league-btn { padding: 5px 10px; font-size: 11px; }
+    .new-game-btn { padding: 5px 10px; font-size: 11px; }
+    .target-number { font-size: 36px; }
+    .slot-row { padding: 8px 10px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div style="position:relative">
+    <h1 style="cursor:pointer" onclick="document.getElementById('modeMenu').classList.toggle('open')">Stat<span>Stacker</span> <span style="font-size:10px;color:#666">&#9660;</span></h1>
+    <div id="modeMenu" class="mode-menu">
+      <a class="mode-item" href="index.html">Classic</a>
+      <a class="mode-item active" href="stack.html">Stack</a>
+    </div>
+  </div>
+  <div class="header-controls">
+    <button class="league-btn active" data-league="NFL" onclick="switchLeague('NFL')">NFL</button>
+    <button class="league-btn" data-league="NBA" onclick="switchLeague('NBA')">NBA</button>
+    <button class="league-btn" id="hardBtn" onclick="toggleHard()" style="font-size:11px;padding:5px 10px">Hard</button>
+    <button class="league-btn" onclick="showCategories()" style="font-size:11px;padding:5px 10px">Stats</button>
+    <button class="new-game-btn" onclick="newGame()">New Game</button>
+  </div>
+</div>
+
+<div class="game-area" id="gameArea"></div>
+
+<div class="modal-overlay" id="searchModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">Pick a Player</h3>
+      <button class="modal-close" onclick="closeSearch()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="search" class="search-input" id="searchInput" placeholder="Search for a player..." autocomplete="off" inputmode="search">
+      <div class="error-msg" id="errorMsg"></div>
+      <div id="searchStatus" class="search-status"></div>
+      <ul class="player-list" id="playerList"></ul>
+    </div>
+  </div>
+</div>
+
+<!-- Categories Modal -->
+<div class="modal-overlay" id="categoriesModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Stat Categories</h3>
+      <button class="modal-close" onclick="closeCategories()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <span style="font-size:12px;color:#888">Toggle which stats appear</span>
+        <button class="slot-btn" style="padding:4px 10px;font-size:11px" onclick="toggleAllCats()">Toggle All</button>
+      </div>
+      <div id="catList"></div>
+      <button class="submit-btn" style="margin-top:12px" onclick="applyCats()">Apply & New Game</button>
+    </div>
+  </div>
+</div>
+
+<canvas id="confetti"></canvas>
+
+<script>
+const ESPN_CORE = "https://sports.core.api.espn.com/v2/sports";
+const ESPN_SEARCH = "https://site.api.espn.com/apis/common/v3/search";
+
+const NFL_LOGOS = {"ARI":"https://a.espncdn.com/i/teamlogos/nfl/500/ari.png","ATL":"https://a.espncdn.com/i/teamlogos/nfl/500/atl.png","BAL":"https://a.espncdn.com/i/teamlogos/nfl/500/bal.png","BUF":"https://a.espncdn.com/i/teamlogos/nfl/500/buf.png","CAR":"https://a.espncdn.com/i/teamlogos/nfl/500/car.png","CHI":"https://a.espncdn.com/i/teamlogos/nfl/500/chi.png","CIN":"https://a.espncdn.com/i/teamlogos/nfl/500/cin.png","CLE":"https://a.espncdn.com/i/teamlogos/nfl/500/cle.png","DAL":"https://a.espncdn.com/i/teamlogos/nfl/500/dal.png","DEN":"https://a.espncdn.com/i/teamlogos/nfl/500/den.png","DET":"https://a.espncdn.com/i/teamlogos/nfl/500/det.png","GNB":"https://a.espncdn.com/i/teamlogos/nfl/500/gb.png","HOU":"https://a.espncdn.com/i/teamlogos/nfl/500/hou.png","IND":"https://a.espncdn.com/i/teamlogos/nfl/500/ind.png","JAX":"https://a.espncdn.com/i/teamlogos/nfl/500/jax.png","KAN":"https://a.espncdn.com/i/teamlogos/nfl/500/kc.png","LAC":"https://a.espncdn.com/i/teamlogos/nfl/500/lac.png","LAR":"https://a.espncdn.com/i/teamlogos/nfl/500/lar.png","LVR":"https://a.espncdn.com/i/teamlogos/nfl/500/lv.png","MIA":"https://a.espncdn.com/i/teamlogos/nfl/500/mia.png","MIN":"https://a.espncdn.com/i/teamlogos/nfl/500/min.png","NOR":"https://a.espncdn.com/i/teamlogos/nfl/500/no.png","NWE":"https://a.espncdn.com/i/teamlogos/nfl/500/ne.png","NYG":"https://a.espncdn.com/i/teamlogos/nfl/500-dark/nyg.png","NYJ":"https://a.espncdn.com/i/teamlogos/nfl/200/nyj.png","PHI":"https://a.espncdn.com/i/teamlogos/nfl/200/phi.png","PIT":"https://a.espncdn.com/i/teamlogos/nfl/500/pit.png","SEA":"https://a.espncdn.com/i/teamlogos/nfl/500/sea.png","SFO":"https://a.espncdn.com/i/teamlogos/nfl/500/sf.png","TAM":"https://a.espncdn.com/i/teamlogos/nfl/500/tb.png","TEN":"https://a.espncdn.com/i/teamlogos/nfl/500/ten.png","WAS":"https://a.espncdn.com/i/teamlogos/nfl/500/wsh.png"};
+const NBA_LOGOS = {"ATL":"https://a.espncdn.com/i/teamlogos/nba/500/atl.png","BOS":"https://a.espncdn.com/i/teamlogos/nba/500/bos.png","BRK":"https://a.espncdn.com/i/teamlogos/nba/500/bkn.png","CHA":"https://a.espncdn.com/i/teamlogos/nba/500/cha.png","CHI":"https://a.espncdn.com/i/teamlogos/nba/500/chi.png","CLE":"https://a.espncdn.com/i/teamlogos/nba/500/cle.png","DAL":"https://a.espncdn.com/i/teamlogos/nba/500/dal.png","DEN":"https://a.espncdn.com/i/teamlogos/nba/500/den.png","DET":"https://a.espncdn.com/i/teamlogos/nba/500/det.png","GSW":"https://a.espncdn.com/i/teamlogos/nba/500/gs.png","HOU":"https://a.espncdn.com/i/teamlogos/nba/500/hou.png","IND":"https://a.espncdn.com/i/teamlogos/nba/500/ind.png","LAC":"https://a.espncdn.com/i/teamlogos/nba/500/lac.png","LAL":"https://a.espncdn.com/i/teamlogos/nba/500/lal.png","MEM":"https://a.espncdn.com/i/teamlogos/nba/500/mem.png","MIA":"https://a.espncdn.com/i/teamlogos/nba/500/mia.png","MIL":"https://a.espncdn.com/i/teamlogos/nba/500/mil.png","MIN":"https://a.espncdn.com/i/teamlogos/nba/500/min.png","NOP":"https://a.espncdn.com/i/teamlogos/nba/500/no.png","NYK":"https://a.espncdn.com/i/teamlogos/nba/500/ny.png","OKC":"https://a.espncdn.com/i/teamlogos/nba/500/okc.png","ORL":"https://a.espncdn.com/i/teamlogos/nba/500/orl.png","PHI":"https://a.espncdn.com/i/teamlogos/nba/500/phi.png","PHO":"https://a.espncdn.com/i/teamlogos/nba/500/phx.png","POR":"https://a.espncdn.com/i/teamlogos/nba/500/por.png","SAC":"https://a.espncdn.com/i/teamlogos/nba/500/sac.png","SAS":"https://a.espncdn.com/i/teamlogos/nba/500/sa.png","TOR":"https://a.espncdn.com/i/teamlogos/nba/500/tor.png","UTA":"https://a.espncdn.com/i/teamlogos/nba/500-dark/utah.png","WAS":"https://a.espncdn.com/i/teamlogos/nba/500/wsh.png"};
+
+const NFL_TEAMS_ARR = ["ARI","ATL","BAL","BUF","CAR","CHI","CIN","CLE","DAL","DEN","DET","GNB","HOU","IND","JAX","KAN","LAC","LAR","LVR","MIA","MIN","NOR","NWE","NYG","NYJ","PHI","PIT","SEA","SFO","TAM","TEN","WAS"];
+const NBA_TEAMS_ARR = ["ATL","BOS","BRK","CHA","CHI","CLE","DAL","DEN","DET","GSW","HOU","IND","LAC","LAL","MEM","MIA","MIL","MIN","NOP","NYK","OKC","ORL","PHI","PHO","POR","SAC","SAS","TOR","UTA","WAS"];
+
+const ESPN_NBA_IDS = {"ATL":1,"BOS":2,"BRK":17,"CHA":30,"CHI":4,"CLE":5,"DAL":6,"DEN":7,"DET":8,"GSW":9,"HOU":10,"IND":11,"LAC":12,"LAL":13,"MEM":29,"MIA":14,"MIL":15,"MIN":16,"NOP":3,"NYK":18,"OKC":25,"ORL":19,"PHI":20,"PHO":21,"POR":22,"SAC":23,"SAS":24,"TOR":28,"UTA":26,"WAS":27};
+const ESPN_NFL_IDS = {"ARI":22,"ATL":1,"BAL":33,"BUF":2,"CAR":29,"CHI":3,"CIN":4,"CLE":5,"DAL":6,"DEN":7,"DET":8,"GNB":9,"HOU":34,"IND":11,"JAX":30,"KAN":12,"LAC":24,"LAR":14,"LVR":13,"MIA":15,"MIN":16,"NOR":18,"NWE":17,"NYG":19,"NYJ":20,"PHI":21,"PIT":23,"SEA":26,"SFO":25,"TAM":27,"TEN":10,"WAS":28};
+
+// Career stat categories with targets
+const STACK_STATS = {
+  NFL: [
+    { cat: "passingYards", display: "Career Pass Yards", espnCat: "passing", espnStat: "passingYards", targets: [15000, 25000, 35000, 50000, 65000, 80000] },
+    { cat: "passingTouchdowns", display: "Career Pass TDs", espnCat: "passing", espnStat: "passingTouchdowns", targets: [50, 100, 150, 200, 300, 400] },
+    { cat: "rushingYards", display: "Career Rush Yards", espnCat: "rushing", espnStat: "rushingYards", targets: [5000, 8000, 12000, 18000, 25000, 35000] },
+    { cat: "rushingTouchdowns", display: "Career Rush TDs", espnCat: "rushing", espnStat: "rushingTouchdowns", targets: [20, 40, 60, 80, 100, 130] },
+    { cat: "receivingYards", display: "Career Rec Yards", espnCat: "receiving", espnStat: "receivingYards", targets: [5000, 8000, 12000, 18000, 25000, 35000] },
+    { cat: "receptions", display: "Career Receptions", espnCat: "receiving", espnStat: "receptions", targets: [200, 400, 600, 800, 1000, 1400] },
+  ],
+  NBA: [
+    { cat: "points", display: "Career Points", espnCat: "offensive", espnStat: "points", targets: [5000, 10000, 15000, 20000, 30000, 40000, 50000, 60000] },
+    { cat: "assists", display: "Career Assists", espnCat: "offensive", espnStat: "assists", targets: [2000, 4000, 6000, 8000, 12000, 15000, 20000] },
+    { cat: "totalRebounds", display: "Career Rebounds", espnCat: "general", espnStat: "totalRebounds", targets: [3000, 5000, 8000, 12000, 15000, 20000] },
+    { cat: "threePointFieldGoalsMade", display: "Career 3PM", espnCat: "offensive", espnStat: "threePointFieldGoalsMade", targets: [500, 1000, 1500, 2000, 3000, 5000] },
+    { cat: "steals", display: "Career Steals", espnCat: "defensive", espnStat: "steals", targets: [500, 800, 1200, 1500, 2000, 3000] },
+    { cat: "blocks", display: "Career Blocks", espnCat: "defensive", espnStat: "blocks", targets: [500, 1000, 1500, 2000, 3000, 4000] },
+  ]
+};
+
+// State
+let league = "NFL";
+let game = null;
+let activeSlot = -1;
+let searchResults = [];
+let submitting = false;
+let hardMode = false;
+const espnCache = {};
+const playerDb = { NFL: null, NBA: null };
+
+// ====== PLAYER DB ======
+async function loadPlayerDb(lg) {
+  if (playerDb[lg]) return;
+  try {
+    const r = await fetch(`${lg.toLowerCase()}_players.json`);
+    playerDb[lg] = await r.json();
+  } catch(e) { playerDb[lg] = []; }
+}
+
+// ====== ESPN ======
+async function fetchAthleteInfo(espnId, lg) {
+  const key = `athlete:${lg}:${espnId}`;
+  if (espnCache[key]) return espnCache[key];
+  const sport = lg === "NFL" ? "football" : "basketball";
+  const leaguePath = lg === "NFL" ? "nfl" : "nba";
+  try {
+    const resp = await fetch(`${ESPN_CORE}/${sport}/leagues/${leaguePath}/athletes/${espnId}`);
+    if (!resp.ok) return null;
+    const d = await resp.json();
+    const result = { name: d.displayName || "?", imageUrl: (d.headshot && d.headshot.href) || "" };
+    espnCache[key] = result;
+    return result;
+  } catch { return null; }
+}
+
+async function fetchCareerStats(espnId, lg) {
+  const key = `career:${lg}:${espnId}`;
+  if (espnCache[key]) return espnCache[key];
+  const sport = lg === "NFL" ? "football" : "basketball";
+  const leaguePath = lg === "NFL" ? "nfl" : "nba";
+  try {
+    const resp = await fetch(`${ESPN_CORE}/${sport}/leagues/${leaguePath}/athletes/${espnId}/statistics`);
+    if (!resp.ok) return null;
+    const d = await resp.json();
+    const cats = (d.splits && d.splits.categories) || [];
+    espnCache[key] = cats;
+    return cats;
+  } catch { return null; }
+}
+
+function extractCareerStat(categories, espnCat, espnStat) {
+  if (!categories) return null;
+  const cat = categories.find(c => c.name === espnCat);
+  if (!cat || !cat.stats) return null;
+  const s = cat.stats.find(st => st.name === espnStat);
+  return s ? Number(s.value) || 0 : null;
+}
+
+async function fetchSeasonLog(espnId, lg) {
+  const key = `seasonlog:${lg}:${espnId}`;
+  if (espnCache[key]) return espnCache[key];
+  const sport = lg === "NFL" ? "football" : "basketball";
+  const leaguePath = lg === "NFL" ? "nfl" : "nba";
+  try {
+    const resp = await fetch(`${ESPN_CORE}/${sport}/leagues/${leaguePath}/athletes/${espnId}/statisticslog`);
+    if (!resp.ok) return [];
+    const d = await resp.json();
+    const seasons = [];
+    for (const entry of (d.entries || [])) {
+      const teamIds = [];
+      for (const s of (entry.statistics || [])) {
+        const ref = s.team && s.team.$ref;
+        if (ref) { const m = ref.match(/\/teams\/(\d+)/); if (m) teamIds.push(parseInt(m[1])); }
+      }
+      seasons.push({ teamIds });
+    }
+    espnCache[key] = seasons;
+    return seasons;
+  } catch { return []; }
+}
+
+function espnTeamIdToAbbr(teamId, lg) {
+  const idMap = lg === "NFL" ? ESPN_NFL_IDS : ESPN_NBA_IDS;
+  for (const [abbr, id] of Object.entries(idMap)) { if (id === teamId) return abbr; }
+  return null;
+}
+
+async function playerPlayedForTeam(espnId, teamAbbr, lg) {
+  const log = await fetchSeasonLog(espnId, lg);
+  const targetId = (lg === "NFL" ? ESPN_NFL_IDS : ESPN_NBA_IDS)[teamAbbr];
+  if (!targetId) return false;
+  return log.some(s => s.teamIds.includes(targetId));
+}
+
+// ====== GAME ======
+function newGame() {
+  const allStats = STACK_STATS[league];
+  const enabled = enabledCats[league];
+  const stats = allStats.filter(s => enabled.has(s.cat));
+  const stat = (stats.length > 0 ? stats : allStats)[Math.floor(Math.random() * (stats.length || allStats.length))];
+  const target = stat.targets[Math.floor(Math.random() * stat.targets.length)];
+  const teams = league === "NFL" ? NFL_TEAMS_ARR : NBA_TEAMS_ARR;
+
+  // Pick 5 random teams
+  const shuffled = [...teams].sort(() => Math.random() - 0.5);
+  const slots = shuffled.slice(0, 5).map(t => ({ team: t, player: null, espnId: null, stat: null, spinning: false, revealed: false }));
+
+  game = { stat, target, slots, done: false, total: 0 };
+  activeSlot = -1;
+  render();
+}
+
+// ====== SPIN ======
+function getNextSpinIdx() {
+  // Can only spin the next slot if all previous slots have players picked
+  const firstUnfilled = game.slots.findIndex(s => !s.player);
+  if (firstUnfilled >= 0 && game.slots[firstUnfilled].revealed) return -1; // must pick before spinning next
+  return game.slots.findIndex(s => !s.revealed && !s.spinning);
+}
+
+function spinSlot(idx) {
+  if (!game || game.done) return;
+  if (idx !== getNextSpinIdx()) return;
+
+  const slot = game.slots[idx];
+  slot.spinning = true;
+  render();
+
+  setTimeout(() => {
+    slot.spinning = false;
+    slot.revealed = true;
+    render();
+    openSearch(idx);
+  }, 1500);
+}
+
+// ====== RENDER ======
+function render() {
+  const area = document.getElementById("gameArea");
+  if (!game) { area.innerHTML = ""; return; }
+
+  const logos = league === "NFL" ? NFL_LOGOS : NBA_LOGOS;
+  const allTeams = league === "NFL" ? NFL_TEAMS_ARR : NBA_TEAMS_ARR;
+  let total = 0;
+  game.slots.forEach(s => { if (s.stat != null) total += s.stat; });
+  game.total = total;
+
+  let html = `<div class="target-box">
+    <div class="target-label">Target</div>
+    <div class="target-stat">${game.stat.display}</div>
+    <div class="target-number">${game.target.toLocaleString()}</div>
+    ${hardMode && !game.done ? '<div class="running-total" style="color:#555">Current: <span class="current">???</span></div>' : `<div class="running-total">Current: <span class="current">${total.toLocaleString()}</span></div>`}
+  </div>`;
+
+  const anySpinning = game.slots.some(s => s.spinning);
+  const nextIdx = anySpinning ? -1 : getNextSpinIdx();
+
+  game.slots.forEach((slot, i) => {
+    html += `<div class="slot-row">`;
+
+    // Team logo / spinner / mystery
+    if (slot.spinning) {
+      const reelItems = [];
+      for (let r = 0; r < 20; r++) reelItems.push(allTeams[Math.floor(Math.random() * allTeams.length)]);
+      reelItems.push(slot.team);
+      html += `<div class="slot-team"><div class="spinner-reel"><div class="spinner-reel-inner" id="reel${i}">`;
+      reelItems.forEach(t => {
+        html += `<div class="spinner-reel-item"><img src="${logos[t]}" alt="${t}"></div>`;
+      });
+      html += `</div></div></div>`;
+    } else if (slot.revealed) {
+      html += `<div class="slot-team"><img src="${logos[slot.team]}" alt="${slot.team}"></div>`;
+    } else {
+      html += `<div class="slot-team" style="font-size:28px;font-weight:800;color:#555">?</div>`;
+    }
+
+    // Player info or action
+    if (slot.player) {
+      const showStat = !hardMode || game.done;
+      html += `${slot.imgUrl ? `<img src="${slot.imgUrl}" style="width:36px;height:36px;object-fit:cover;flex-shrink:0" onerror="this.style.display='none'">` : ""}`;
+      html += `<div class="slot-info" style="display:flex;justify-content:space-between;align-items:center">
+        <div class="slot-player-name">${esc(slot.player)}</div>
+        <div class="slot-player-stat">${showStat && slot.stat != null ? slot.stat.toLocaleString() : "???"}</div>
+      </div>`;
+    } else if (slot.spinning) {
+      html += `<div class="slot-info"><div class="slot-empty">Spinning...</div></div>`;
+    } else if (slot.revealed) {
+      html += `<div class="slot-info"><div class="slot-empty">Pick a player</div></div>
+        <button class="slot-btn" onclick="openSearch(${i})">Pick</button>`;
+    } else if (i === nextIdx) {
+      html += `<div class="slot-info"><div class="slot-empty">Tap to spin</div></div>
+        <button class="slot-btn" onclick="spinSlot(${i})">Spin</button>`;
+    } else {
+      html += `<div class="slot-info"><div class="slot-empty"></div></div>`;
+    }
+    html += `</div>`;
+  });
+
+  // Conclusion
+  if (game.done) {
+    const diff = total - game.target;
+    const absDiff = Math.abs(diff);
+    const pct = game.target > 0 ? Math.round((1 - absDiff / game.target) * 100) : 0;
+    const diffClass = absDiff === 0 ? "perfect" : absDiff < game.target * 0.05 ? "close" : "far";
+    const remark = absDiff === 0 ? "PERFECT!" : absDiff < game.target * 0.02 ? "So close!" : absDiff < game.target * 0.05 ? "Great job!" : absDiff < game.target * 0.15 ? "Not bad!" : "Better luck next time";
+    const sign = diff > 0 ? "+" : diff < 0 ? "" : "";
+
+    html += `<div class="stack-conclusion">
+      <div class="result-remark">${remark}</div>
+      <div class="result-diff ${diffClass}">${sign}${diff.toLocaleString()}</div>
+      <div class="result-label">${total.toLocaleString()} / ${game.target.toLocaleString()}</div>
+      <button class="share-btn" onclick="shareStack()">Share Results</button>
+    </div>`;
+
+    if (pct >= 95) setTimeout(launchConfetti, 300);
+  }
+
+  area.innerHTML = html;
+
+  // Trigger spin animation
+  game.slots.forEach((slot, i) => {
+    if (slot.spinning) {
+      const reel = document.getElementById("reel" + i);
+      if (reel) {
+        requestAnimationFrame(() => {
+          reel.style.transform = `translateY(-${20 * 50}px)`;
+        });
+      }
+    }
+  });
+}
+
+function esc(s) { return s ? String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;") : ""; }
+
+// ====== SEARCH ======
+function openSearch(idx) {
+  if (!game || game.done) return;
+  activeSlot = idx;
+  document.getElementById("searchInput").value = "";
+  document.getElementById("errorMsg").textContent = "";
+  document.getElementById("playerList").innerHTML = "";
+  document.getElementById("searchStatus").textContent = "Type to search...";
+  document.getElementById("modalTitle").textContent = `Pick a player (${game.slots[idx].team})`;
+  document.getElementById("searchModal").classList.add("open");
+  const inp = document.getElementById("searchInput");
+  inp.offsetHeight;
+  inp.focus();
+}
+
+function closeSearch() {
+  document.getElementById("searchModal").classList.remove("open");
+  activeSlot = -1; searchResults = [];
+}
+
+let searchTimer = null;
+document.getElementById("searchInput").addEventListener("input", function() {
+  clearTimeout(searchTimer);
+  const q = this.value.trim();
+  if (q.length < 2) {
+    document.getElementById("playerList").innerHTML = "";
+    document.getElementById("searchStatus").textContent = "Type at least 2 characters...";
+    return;
+  }
+  document.getElementById("searchStatus").textContent = "Searching...";
+  searchTimer = setTimeout(() => doSearch(q), 300);
+});
+
+async function doSearch(q) {
+  await loadPlayerDb(league);
+  const db = playerDb[league] || [];
+  const ql = q.toLowerCase();
+  // Only show players with ESPN IDs (others can't fetch stats)
+  // Also match partial first names: "will" matches "William"
+  const words = ql.split(/\s+/);
+  searchResults = db.filter(p => {
+    if (!p.id) return false;
+    const nl = p.n.toLowerCase();
+    // Standard substring match
+    if (nl.includes(ql)) return true;
+    // Multi-word: match each word against name parts
+    if (words.length > 1) {
+      const nameParts = nl.split(/\s+/);
+      return words.every(w => nameParts.some(np => np.startsWith(w)));
+    }
+    // Single word: match against any name part start
+    return nl.split(/\s+/).some(np => np.startsWith(ql));
+  }).slice(0, 15).map(p => ({
+    espnId: p.id, name: p.n, position: p.p || "", debutYear: p.d || null, endYear: p.e || null, active: !!p.a
+  }));
+  const list = document.getElementById("playerList");
+  const status = document.getElementById("searchStatus");
+  if (!searchResults.length) { list.innerHTML = ""; status.textContent = "No players found."; return; }
+  status.textContent = `${searchResults.length} player${searchResults.length > 1 ? "s" : ""} found`;
+  list.innerHTML = searchResults.map((p, i) => {
+    let detail = "";
+    if (p.debutYear) {
+      const end = p.active ? "pres." : (p.endYear || "");
+      detail = league === "NFL" && p.position ? `${p.position} · ${p.debutYear}-${end}` : `${p.debutYear}-${end}`;
+    }
+    return `<li class="player-list-item" data-pidx="${i}"><span class="pname">${esc(p.name)}</span><span class="pyears">${esc(detail)}</span></li>`;
+  }).join("");
+}
+
+document.getElementById("playerList").addEventListener("click", e => {
+  const item = e.target.closest("[data-pidx]");
+  if (item) submitPlayer(+item.dataset.pidx);
+});
+
+async function submitPlayer(idx) {
+  const p = searchResults[idx];
+  if (!p || activeSlot < 0 || submitting) return;
+
+  let espnId = p.espnId;
+  if (!espnId) {
+    // Resolve ESPN ID — try multiple search queries (full name, stripped suffix, last name)
+    const pNorm = p.name.toLowerCase().replace(/ jr\.?$| sr\.?$| ii$| iii$| iv$| v$/i, "").trim();
+    const nameParts = p.name.split(" ");
+    const queries = [p.name];
+    if (pNorm !== p.name.toLowerCase()) queries.push(pNorm);
+    if (nameParts.length > 1) queries.push(nameParts[nameParts.length - 1]);
+
+    for (const q of queries) {
+      if (espnId) break;
+      try {
+        const resp = await fetch(`${ESPN_SEARCH}?query=${encodeURIComponent(q)}&limit=10&type=player&sport=${league === "NFL" ? "football" : "basketball"}`);
+        const data = await resp.json();
+        const match = (data.items || []).find(i => {
+          const dn = (i.displayName || "").toLowerCase();
+          const dnNorm = dn.replace(/ jr\.?$| sr\.?$| ii$| iii$| iv$| v$/i, "").trim();
+          return dn === p.name.toLowerCase() || dnNorm === pNorm || dn.includes(pNorm) || pNorm.includes(dnNorm);
+        });
+        if (match) espnId = String(match.id);
+      } catch {}
+    }
+    if (!espnId) {
+      document.getElementById("errorMsg").textContent = "Could not find stats for this player.";
+      submitting = false;
+      document.getElementById("searchStatus").textContent = "";
+      return;
+    }
+  }
+
+  submitting = true;
+  document.getElementById("searchStatus").innerHTML = '<span class="spinner"></span> Checking...';
+  document.getElementById("errorMsg").textContent = "";
+
+  try {
+    // Verify player played for this team
+    const slot = game.slots[activeSlot];
+    const played = await playerPlayedForTeam(espnId, slot.team, league);
+    if (!played) {
+      document.getElementById("errorMsg").textContent = `${p.name} never played for ${slot.team}.`;
+      submitting = false;
+      document.getElementById("searchStatus").textContent = "";
+      return;
+    }
+
+    // Fetch career stats
+    const cats = await fetchCareerStats(espnId, league);
+    const val = extractCareerStat(cats, game.stat.espnCat, game.stat.espnStat);
+    if (val == null) {
+      document.getElementById("errorMsg").textContent = `No ${game.stat.display} data found.`;
+      submitting = false;
+      document.getElementById("searchStatus").textContent = "";
+      return;
+    }
+
+    // Fetch headshot
+    const info = await fetchAthleteInfo(espnId, league);
+    slot.player = p.name;
+    slot.espnId = espnId;
+    slot.stat = val;
+    slot.imgUrl = (info && info.imageUrl) || "";
+
+    if (game.slots.every(s => s.player)) game.done = true;
+    closeSearch();
+    render();
+  } catch (e) {
+    document.getElementById("errorMsg").textContent = "Error fetching stats. Try again.";
+  }
+  submitting = false;
+  document.getElementById("searchStatus").textContent = "";
+}
+
+// ====== SHARE ======
+function shareStack() {
+  if (!game) return;
+  const diff = game.total - game.target;
+  const sign = diff > 0 ? "+" : "";
+  const text = `StatStacker Stack ${league === "NFL" ? "\uD83C\uDFC8" : "\uD83C\uDFC0"}\n${game.stat.display}\nTarget: ${game.target.toLocaleString()}\nResult: ${game.total.toLocaleString()} (${sign}${diff.toLocaleString()})\nstatstacker.com/stack.html`;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector(".share-btn");
+    if (btn) { btn.textContent = "Copied!"; btn.classList.add("copied"); setTimeout(() => { btn.textContent = "Share Results"; btn.classList.remove("copied"); }, 2000); }
+  });
+}
+
+// ====== CONFETTI ======
+function launchConfetti() {
+  const canvas = document.getElementById("confetti");
+  const ctx = canvas.getContext("2d");
+  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+  const particles = [];
+  const colors = ["#4CAF50","#ffc107","#00bcd4","#ff5722","#e91e63","#9c27b0","#fff"];
+  for (let i = 0; i < 120; i++) {
+    particles.push({ x: Math.random()*canvas.width, y: -10-Math.random()*40, w: 4+Math.random()*6, h: 6+Math.random()*8,
+      vx: (Math.random()-0.5)*4, vy: 2+Math.random()*4, rot: Math.random()*360, vr: (Math.random()-0.5)*10,
+      color: colors[Math.floor(Math.random()*colors.length)], life: 1 });
+  }
+  let frame = 0;
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    let alive = false;
+    for (const p of particles) {
+      if (p.life <= 0) continue; alive = true;
+      p.x += p.vx; p.y += p.vy; p.vy += 0.1; p.rot += p.vr; p.life -= 0.008;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot*Math.PI/180);
+      ctx.globalAlpha = Math.max(0, p.life); ctx.fillStyle = p.color;
+      ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h); ctx.restore();
+    }
+    if (alive && ++frame < 180) requestAnimationFrame(draw);
+    else ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+  requestAnimationFrame(draw);
+}
+
+// ====== NAV ======
+// ====== CATEGORIES ======
+const enabledCats = { NFL: new Set(STACK_STATS.NFL.map(s => s.cat)), NBA: new Set(STACK_STATS.NBA.map(s => s.cat)) };
+
+function showCategories() {
+  const stats = STACK_STATS[league];
+  const enabled = enabledCats[league];
+  document.getElementById("catList").innerHTML = stats.map(s =>
+    `<div class="cat-item">
+      <input type="checkbox" id="scat_${s.cat}" ${enabled.has(s.cat) ? "checked" : ""}>
+      <label for="scat_${s.cat}">${s.display}</label>
+    </div>`
+  ).join("");
+  document.getElementById("categoriesModal").classList.add("open");
+}
+function closeCategories() { document.getElementById("categoriesModal").classList.remove("open"); }
+function toggleAllCats() {
+  const cbs = document.querySelectorAll("#catList input[type=checkbox]");
+  const allOn = [...cbs].every(c => c.checked);
+  cbs.forEach(c => c.checked = !allOn);
+}
+function applyCats() {
+  const stats = STACK_STATS[league];
+  const enabled = enabledCats[league];
+  enabled.clear();
+  stats.forEach(s => { const cb = document.getElementById("scat_" + s.cat); if (cb?.checked) enabled.add(s.cat); });
+  if (enabled.size === 0) enabled.add(stats[0].cat);
+  closeCategories();
+  newGame();
+}
+document.getElementById("categoriesModal").addEventListener("click", e => {
+  if (e.target === document.getElementById("categoriesModal")) closeCategories();
+});
+
+function toggleHard() {
+  hardMode = !hardMode;
+  document.getElementById("hardBtn").classList.toggle("active", hardMode);
+  if (game) render();
+}
+
+function switchLeague(lg) {
+  league = lg;
+  document.querySelectorAll(".league-btn").forEach(b => b.classList.toggle("active", b.dataset.league === lg));
+  newGame();
+}
+
+document.addEventListener("click", e => {
+  const menu = document.getElementById("modeMenu");
+  if (menu.classList.contains("open") && !e.target.closest(".mode-menu") && !e.target.closest("h1")) menu.classList.remove("open");
+});
+document.getElementById("searchModal").addEventListener("click", e => { if (e.target === document.getElementById("searchModal")) closeSearch(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeSearch(); });
+
+// Init
+newGame();
+</script>
+</body>
+</html>
