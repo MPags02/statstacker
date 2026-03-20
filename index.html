@@ -1373,8 +1373,7 @@ function render() {
       html += `<div>Your score: <span class="val">${yourDisplay}</span></div>`;
       html += `<div>Best possible: <span class="val">${bestDisplay}</span></div>`;
       html += `</div>`;
-      html += `<button class="share-btn" data-share="${pct}" data-emojis="${tierEmojis.join("")}" data-sport="${game.lg}" data-stat="${esc(game.stat.display)}" data-score="${yourDisplay}">Share Text</button>`;
-      html += `<button class="share-btn" onclick="generateShareImage(${pct}, '${yourDisplay}', '${bestDisplay}')" style="background:#1e1e1c;border:1px solid #4CAF50;color:#4CAF50">Share Image</button>`;
+      html += `<button class="share-btn" data-share="${pct}" data-emojis="${tierEmojis.join("")}" data-sport="${game.lg}" data-stat="${esc(game.stat.display)}" data-score="${yourDisplay}">Share Results</button>`;
       html += `<button class="challenge-btn" data-challenge="1">Challenge a Friend</button>`;
       html += `</div>`;
     } else if (anyLoading) {
