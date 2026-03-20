@@ -270,17 +270,9 @@
     to { opacity: 1; transform: translateX(0); }
   }
 
-  /* Top answers expand/collapse */
-  .top-answers {
-    overflow: hidden; max-height: 0; opacity: 0;
-    transition: max-height 0.3s ease-out, opacity 0.25s ease-out, padding 0.3s ease-out;
-    padding-top: 0; padding-bottom: 0;
-  }
-  .top-answers.open {
-    max-height: 400px; opacity: 1;
-    padding-top: 8px; padding-bottom: 8px;
-    display: block;
-  }
+  /* Top answers show/hide */
+  .top-answers { display: none; }
+  .top-answers.open { display: block; }
 
   /* Add button - no animation */
 
