@@ -5,6 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>StatStacker</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
+<meta property="og:title" content="StatStacker">
+<meta property="og:description" content="Stack your sports knowledge. Pick players to maximize stats across NFL and NBA puzzles.">
+<meta property="og:image" content="https://statstacker.com/og-image.png">
+<meta property="og:url" content="https://statstacker.com">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="StatStacker">
+<meta name="twitter:description" content="Stack your sports knowledge. NFL & NBA stat puzzles.">
+<meta name="twitter:image" content="https://statstacker.com/og-image.png">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html { overflow-x: hidden; }
@@ -1364,7 +1373,8 @@ function render() {
       html += `<div>Your score: <span class="val">${yourDisplay}</span></div>`;
       html += `<div>Best possible: <span class="val">${bestDisplay}</span></div>`;
       html += `</div>`;
-      html += `<button class="share-btn" data-share="${pct}" data-emojis="${tierEmojis.join("")}" data-sport="${game.lg}" data-stat="${esc(game.stat.display)}" data-score="${yourDisplay}">Share Results</button>`;
+      html += `<button class="share-btn" data-share="${pct}" data-emojis="${tierEmojis.join("")}" data-sport="${game.lg}" data-stat="${esc(game.stat.display)}" data-score="${yourDisplay}">Share Text</button>`;
+      html += `<button class="share-btn" onclick="generateShareImage(${pct}, '${yourDisplay}', '${bestDisplay}')" style="background:#1e1e1c;border:1px solid #4CAF50;color:#4CAF50">Share Image</button>`;
       html += `<button class="challenge-btn" data-challenge="1">Challenge a Friend</button>`;
       html += `</div>`;
     } else if (anyLoading) {
@@ -1970,6 +1980,94 @@ function applyCategories() {
 document.getElementById("categoriesModal").addEventListener("click", e => {
   if (e.target === document.getElementById("categoriesModal")) closeCategories();
 });
+
+// ====== SHARE IMAGE ======
+function generateShareImage(pct, yourScore, bestScore) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 600; canvas.height = 400;
+  const ctx = canvas.getContext("2d");
+
+  // Background
+  ctx.fillStyle = "#262624";
+  ctx.fillRect(0, 0, 600, 400);
+
+  // Title
+  ctx.font = "bold 28px -apple-system, sans-serif";
+  ctx.fillStyle = "#e0e0e0";
+  ctx.textAlign = "center";
+  ctx.fillText("Stat", 270, 50);
+  ctx.fillStyle = "#4CAF50";
+  ctx.fillText("Stacker", 345, 50);
+
+  // Sport + stat
+  ctx.font = "16px -apple-system, sans-serif";
+  ctx.fillStyle = "#888";
+  ctx.fillText(`${game.lg} · ${game.stat.display}`, 300, 80);
+
+  // Tier emojis row
+  const tierColors = { "tier-legendary": "#e65100", "tier-diamond": "#00838f", "tier-gold": "#f9a825", "tier-silver": "#546e7a" };
+  const boxSize = 40, gap = 8, startX = 300 - (5 * (boxSize + gap) - gap) / 2;
+  game.rows.forEach((row, i) => {
+    const x = startX + i * (boxSize + gap);
+    const tier = getTier(row);
+    ctx.fillStyle = tierColors[tier] || "#333";
+    ctx.beginPath();
+    ctx.roundRect(x, 100, boxSize, boxSize, 6);
+    ctx.fill();
+    // Player initials
+    if (row.player && row.player.fn !== "Give") {
+      ctx.font = "bold 14px -apple-system, sans-serif";
+      ctx.fillStyle = "#fff";
+      ctx.textAlign = "center";
+      ctx.fillText((row.player.fn[0] || "") + (row.player.ln[0] || ""), x + boxSize/2, 125);
+    }
+  });
+
+  // Percentage
+  const pctColor = pct >= 90 ? "#4CAF50" : pct >= 70 ? "#ffc107" : pct >= 50 ? "#ff9800" : "#ef5350";
+  ctx.font = "bold 72px -apple-system, sans-serif";
+  ctx.fillStyle = pctColor;
+  ctx.textAlign = "center";
+  ctx.fillText(`${pct}%`, 300, 220);
+
+  // Label
+  ctx.font = "14px -apple-system, sans-serif";
+  ctx.fillStyle = "#888";
+  ctx.fillText("of the best possible score", 300, 245);
+
+  // Scores
+  ctx.font = "18px -apple-system, sans-serif";
+  ctx.fillStyle = "#aaa";
+  ctx.fillText(`Your score: ${yourScore}  ·  Best: ${bestScore}`, 300, 290);
+
+  // Players list
+  ctx.font = "12px -apple-system, sans-serif";
+  ctx.fillStyle = "#555";
+  const names = game.rows.filter(r => r.player && r.player.fn !== "Give").map(r => `${r.player.fn} ${r.player.ln}`).join(" · ");
+  ctx.fillText(names, 300, 320);
+
+  // URL
+  ctx.font = "16px -apple-system, sans-serif";
+  ctx.fillStyle = "#4CAF50";
+  ctx.fillText("statstacker.com", 300, 370);
+
+  // Download or share
+  canvas.toBlob(blob => {
+    if (navigator.canShare && navigator.canShare({ files: [new File([blob], "statstacker.png", { type: "image/png" })] })) {
+      navigator.share({
+        files: [new File([blob], "statstacker.png", { type: "image/png" })],
+        title: "StatStacker",
+        text: `${game.lg} ${game.stat.display} - ${pct}%`
+      });
+    } else {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "statstacker.png";
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+  }, "image/png");
+}
 
 // Close mode menu on outside click
 document.addEventListener("click", e => {

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#262624"/>
+  <!-- Stacked bars background -->
+  <rect x="80" y="180" width="300" height="40" rx="8" fill="#4CAF50" opacity="0.15"/>
+  <rect x="120" y="230" width="260" height="40" rx="8" fill="#4CAF50" opacity="0.12"/>
+  <rect x="100" y="280" width="320" height="40" rx="8" fill="#4CAF50" opacity="0.09"/>
+  <rect x="140" y="330" width="220" height="40" rx="8" fill="#4CAF50" opacity="0.06"/>
+  <!-- Right side bars -->
+  <rect x="820" y="180" width="300" height="40" rx="8" fill="#4CAF50" opacity="0.15"/>
+  <rect x="860" y="230" width="260" height="40" rx="8" fill="#4CAF50" opacity="0.12"/>
+  <rect x="840" y="280" width="320" height="40" rx="8" fill="#4CAF50" opacity="0.09"/>
+  <rect x="880" y="330" width="220" height="40" rx="8" fill="#4CAF50" opacity="0.06"/>
+  <!-- Title -->
+  <text x="600" y="270" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="72" font-weight="800" fill="#e0e0e0">Stat<tspan fill="#4CAF50">Stacker</tspan></text>
+  <!-- Subtitle -->
+  <text x="600" y="330" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="28" fill="#888">Stack your sports knowledge</text>
+  <!-- Tags -->
+  <text x="600" y="420" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="22" fill="#555">NFL · NBA · Unlimited Puzzles · Challenge Friends</text>
+  <!-- URL -->
+  <text x="600" y="570" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="20" fill="#4CAF50">statstacker.com</text>
+</svg>

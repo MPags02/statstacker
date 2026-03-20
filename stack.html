@@ -5,6 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>StatStacker - Stack</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
+<meta property="og:title" content="StatStacker - Stack">
+<meta property="og:description" content="Spin teams, pick players, stack career totals to hit the target. How close can you get?">
+<meta property="og:image" content="https://statstacker.com/og-image.png">
+<meta property="og:url" content="https://statstacker.com/stack.html">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="StatStacker - Stack">
+<meta name="twitter:description" content="Spin teams, pick players, stack career totals. How close can you get?">
+<meta name="twitter:image" content="https://statstacker.com/og-image.png">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html { overflow-x: hidden; }
@@ -237,6 +246,19 @@
 <canvas id="confetti"></canvas>
 
 <script>
+// ====== ANIMATIONS ======
+function animateCount(el, from, to, duration) {
+  const start = performance.now();
+  function step(now) {
+    const t = Math.min((now - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - t, 3);
+    const current = Math.round(from + (to - from) * eased);
+    el.textContent = current.toLocaleString();
+    if (t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
 const ESPN_CORE = "https://sports.core.api.espn.com/v2/sports";
 const ESPN_SEARCH = "https://site.api.espn.com/apis/common/v3/search";
 
@@ -646,6 +668,22 @@ async function submitPlayer(idx) {
     if (game.slots.every(s => s.player)) game.done = true;
     closeSearch();
     render();
+
+    // Animate: countup the player's stat, then roll the running total
+    if (!hardMode) {
+      const slotIdx = game.slots.indexOf(slot);
+      setTimeout(() => {
+        // Countup the individual stat
+        const statEl = document.querySelectorAll(".slot-player-stat")[slotIdx];
+        if (statEl) animateCount(statEl, 0, val, 800);
+        // After stat countup, animate the running total
+        setTimeout(() => {
+          const totalEl = document.querySelector(".running-total .current");
+          const prevTotal = game.total - val;
+          if (totalEl) animateCount(totalEl, prevTotal, game.total, 600);
+        }, 850);
+      }, 50);
+    }
   } catch (e) {
     document.getElementById("errorMsg").textContent = "Error fetching stats. Try again.";
   }
