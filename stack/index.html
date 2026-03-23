@@ -581,26 +581,59 @@ document.getElementById("searchInput").addEventListener("input", function() {
   searchTimer = setTimeout(() => doSearch(q), 300);
 });
 
+// Position relevance for stat categories
+const POSITION_RELEVANCE = {
+  // NFL
+  passingYards: ["QB"], passingTouchdowns: ["QB"],
+  rushingYards: ["RB","QB","FB"], rushingTouchdowns: ["RB","QB","FB"],
+  receivingYards: ["WR","TE","RB","FB"], receptions: ["WR","TE","RB","FB"],
+  // NBA - all positions are relevant, but some more so
+  points: ["SG","SF","PG","PF","C","G","F"],
+  assists: ["PG","SG","G","SF"],
+  totalRebounds: ["C","PF","F","SF"],
+  threePointFieldGoalsMade: ["SG","PG","SF","G","F"],
+  steals: ["PG","SG","G","SF"],
+  blocks: ["C","PF","F"],
+};
+
+function getPositionScore(position, statCat) {
+  if (!position) return 1; // unknown position, neutral
+  const relevant = POSITION_RELEVANCE[statCat];
+  if (!relevant) return 1; // no preference for this stat
+  const idx = relevant.indexOf(position);
+  if (idx === 0) return 3; // primary position
+  if (idx > 0) return 2;   // secondary position
+  return 0;                 // unlikely position for this stat
+}
+
 async function doSearch(q) {
   await loadPlayerDb(league);
   const db = playerDb[league] || [];
   const ql = q.toLowerCase();
-  // Only show players with ESPN IDs (others can't fetch stats)
-  // Also match partial first names: "will" matches "William"
   const words = ql.split(/\s+/);
-  searchResults = db.filter(p => {
+  const statCat = game ? game.stat.cat : null;
+
+  // Filter matches
+  const matches = db.filter(p => {
     if (!p.id) return false;
     const nl = p.n.toLowerCase();
-    // Standard substring match
     if (nl.includes(ql)) return true;
-    // Multi-word: match each word against name parts
     if (words.length > 1) {
       const nameParts = nl.split(/\s+/);
       return words.every(w => nameParts.some(np => np.startsWith(w)));
     }
-    // Single word: match against any name part start
     return nl.split(/\s+/).some(np => np.startsWith(ql));
-  }).slice(0, 15).map(p => ({
+  });
+
+  // Sort by position relevance to current stat, then alphabetically
+  matches.sort((a, b) => {
+    const sa = getPositionScore(a.p, statCat);
+    const sb = getPositionScore(b.p, statCat);
+    if (sb !== sa) return sb - sa; // higher relevance first
+    return a.n.localeCompare(b.n);
+  });
+
+  searchResults = matches.slice(0, 20).map(p => ({
     espnId: p.id, name: p.n, position: p.p || "", debutYear: p.d || null, endYear: p.e || null, active: !!p.a
   }));
   const list = document.getElementById("playerList");
@@ -661,9 +694,15 @@ async function submitPlayer(idx) {
   document.getElementById("errorMsg").textContent = "";
 
   try {
-    // Verify player played for this team
     const slot = game.slots[activeSlot];
-    const played = await playerPlayedForTeam(espnId, slot.team, league);
+
+    // Fetch all 3 in parallel
+    const [played, cats, info] = await Promise.all([
+      playerPlayedForTeam(espnId, slot.team, league),
+      fetchCareerStats(espnId, league),
+      fetchAthleteInfo(espnId, league)
+    ]);
+
     if (!played) {
       document.getElementById("errorMsg").textContent = `${p.name} never played for ${slot.team}.`;
       submitting = false;
@@ -671,18 +710,16 @@ async function submitPlayer(idx) {
       return;
     }
 
-    // Fetch career stats
-    const cats = await fetchCareerStats(espnId, league);
     const val = extractCareerStat(cats, game.stat.espnCat, game.stat.espnStat);
-    if (val == null) {
-      document.getElementById("errorMsg").textContent = `No ${game.stat.display} data found.`;
+    if (val == null || val === 0) {
+      document.getElementById("errorMsg").textContent = val === 0
+        ? `${p.name} has 0 career ${game.stat.display.replace("Career ", "")}. Pick someone else.`
+        : `No ${game.stat.display} data found.`;
       submitting = false;
       document.getElementById("searchStatus").textContent = "";
       return;
     }
 
-    // Fetch headshot
-    const info = await fetchAthleteInfo(espnId, league);
     slot.player = p.name;
     slot.espnId = espnId;
     slot.stat = val;

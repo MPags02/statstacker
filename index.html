@@ -1547,9 +1547,23 @@ async function doSearch(q) {
     const ql = q.toLowerCase();
     const db = playerDb[league] || [];
 
-    // Only show players with ESPN IDs. Match partial first names ("will" finds "William")
+    // Position relevance for stat categories
+    const POS_REL = {
+      pass_yds:["QB"],pass_td:["QB"],rush_yds:["RB","QB","FB"],rush_td:["RB","QB","FB"],
+      rec_yds:["WR","TE","RB","FB"],rec:["WR","TE","RB","FB"],rec_ypg:["WR","TE","RB"],
+      rush_ypg:["RB","QB","FB"],scrim_yds:["RB","WR","TE","FB"],tot_td:["RB","WR","TE","QB"],
+      qbr:["QB"],pass_int:["CB","S","DB","LB","SS","FS"],
+      pts_pg:["SG","SF","PG","PF","C","G","F"],ast_tot:["PG","SG","G","SF"],
+      three_tot:["SG","PG","SF","G","F"],ftp:["SG","SF","PG","PF","C","G","F"],
+      trb_tot:["C","PF","F","SF"],trb_pg:["C","PF","F","SF"],
+      stl_tot:["PG","SG","G","SF"],stl_pg:["PG","SG","G","SF"],
+      blk_tot:["C","PF","F"],blk_pg:["C","PF","F"],
+    };
+    const statCat = game ? game.stat.cat : null;
+    const relevant = statCat ? (POS_REL[statCat] || []) : [];
+
     const words = ql.split(/\s+/);
-    searchResults = db.filter(p => {
+    const matches = db.filter(p => {
       if (!p.id) return false;
       const nl = p.n.toLowerCase();
       if (nl.includes(ql)) return true;
@@ -1558,7 +1572,17 @@ async function doSearch(q) {
         return words.every(w => nameParts.some(np => np.startsWith(w)));
       }
       return nl.split(/\s+/).some(np => np.startsWith(ql));
-    }).slice(0, 15).map(p => ({
+    });
+
+    // Sort: relevant positions first, then alphabetical
+    matches.sort((a, b) => {
+      const sa = !a.p ? 1 : relevant.indexOf(a.p) === 0 ? 3 : relevant.includes(a.p) ? 2 : 0;
+      const sb = !b.p ? 1 : relevant.indexOf(b.p) === 0 ? 3 : relevant.includes(b.p) ? 2 : 0;
+      if (sb !== sa) return sb - sa;
+      return a.n.localeCompare(b.n);
+    });
+
+    searchResults = matches.slice(0, 20).map(p => ({
       espnId: p.id, name: p.n, position: p.p || "",
       debutYear: p.d || null, endYear: p.e || null, active: !!p.a
     }));
